@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.8 2018/10/26 08:39:35 thor Exp $
+# $Id: jxscodestream.py,v 1.9 2019/06/26 06:36:07 thor Exp $
 
 import sys
 
@@ -534,12 +534,12 @@ class JXSCodestream:
         self.pos = 4
         while self.pos < len(self.buffer):
             for bit in range(8):
-                cap = (ord(self.buffer[self.pos,self.pos + 1]) >> (7 - bit)) & 1
+                cap = ((ord(self.buffer[self.pos:self.pos + 1])) >> (7 - bit)) & 1
                 if cap == 0:
                     required = "not required"
                 else:
                     required = "is required"
-                self.print_indent("Capability %s : %s",((self.pos << 3) + bit,required))
+                self.print_indent("Capability %3s : %s" % (((self.pos << 3) + bit - 32,required)))
             self.pos = self.pos + 1
         self.end_marker()
 
