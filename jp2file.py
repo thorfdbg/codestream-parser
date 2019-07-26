@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jp2file.py,v 1.73 2019/05/14 06:20:18 thor Exp $
+# $Id: jp2file.py,v 1.74 2019/07/26 06:36:10 thor Exp $
 
 import getopt
 import sys
@@ -473,6 +473,8 @@ def parse_colorspec_box(box,buffer):
             print "restricted ICC profile"
         elif method == 3:
             print "full icc profile"
+        elif method == 4:
+            print "parametric colourspace"
         elif method == 5:
             print "coding independent code points"
         else:
@@ -725,6 +727,8 @@ def parse_cdef_box(box,buffer):
                 print "opacity"
             elif typ == 2:
                 print "premultiplied opacity"
+            elif typ == 3:
+                print "application defined color"
             elif typ == 0xffff:
                 print "unspecified"
             else:
