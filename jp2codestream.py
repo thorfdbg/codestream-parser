@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jp2codestream.py,v 1.46 2019/05/28 14:25:34 thor Exp $
+# $Id: jp2codestream.py,v 1.47 2019/07/26 07:08:26 thor Exp $
 
 import sys
 
@@ -761,9 +761,13 @@ class JP2Codestream:
                               str(ord(self.buffer[self.pos + 2])))
             if self.csiz <= 256:
                 cepoc = ord(self.buffer[self.pos + 3])
+                if cepoc == 0:
+                    cepoc = 256
                 self.pos = self.pos + 4
             else:
                 cepoc = ordw(self.buffer[self.pos + 3:self.pos + 5])
+                if cepoc == 0:
+                    cepoc = 16384
                 self.pos = self.pos + 5
             self.print_header("Component Index #%d (End)" % (i), str(cepoc))
             po = self.progression_order(ord(self.buffer[self.pos]))
