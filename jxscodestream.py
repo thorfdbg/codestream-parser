@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.9 2019/06/26 06:36:07 thor Exp $
+# $Id: jxscodestream.py,v 1.11 2020/10/15 12:14:27 thor Exp $
 
 import sys
 
@@ -167,7 +167,7 @@ class JXSCodestream:
         mrk    = ordw(marker)
         if (mrk >= 0xff10 and mrk <= 0xff11):
             self.buffer = marker
-        elif mrk == 0xff12 or mrk == 0xff13 or mrk == 0xff14 or mrk == 0xff15 or mrk == 0xff20 or mrk == 0xff50:
+        elif mrk == 0xff12 or mrk == 0xff13 or mrk == 0xff14 or mrk == 0xff15 or mrk == 0xff16 or mrk == 0xff17 or mrk == 0xff18 or mrk == 0xff19 or mrk == 0xff20 or mrk == 0xff50:
             size   = file.read(2)
             ln     = ordw(size)
             if (ln < 2):
@@ -183,6 +183,7 @@ class JXSCodestream:
     def load_buffer(self, file):
         self.markerpos = self.offset
         marker = file.read(2)
+
         if len(marker) == 0:
             self.buffer = []
         else:  
@@ -371,7 +372,8 @@ class JXSCodestream:
         nlx  = wavl >> 4
         nly  = wavl & 15
         cod  = ord(self.buffer[self.pos +23:self.pos + 24])
-        qpih = cod >> 4
+        lhdr = (cod >> 7) & 1
+        qpih = (cod >> 4) & 7
         fs   = (cod >> 2) & 2
         rm   = cod & 3
         self.sliceheight = hsl
@@ -384,6 +386,7 @@ class JXSCodestream:
         self.vlevels     = nly
         self.profile     = ppih
         self.level       = plev
+        self.longhdr     = lhdr
         self.bandcount   = nc * (2*min(nlx,nly) + max(nlx,nly) + 1)
         if cw == 0:
             pwidthstr = "full width"
@@ -415,6 +418,7 @@ class JXSCodestream:
         self.print_indent("Colour decorrelation      : %s" % self.decode_cpih(cpih))
         self.print_indent("Horizontal wavelet levels : %s" % nlx)
         self.print_indent("Vertical wavelet levels   : %s" % nly)
+        self.print_indent("Forced long headers       : %s" % lhdr)
         self.print_indent("Quantizer type            : %s" % self.decode_qpih(qpih))
         self.print_indent("Sign handling             : %s" % self.decode_fs(fs))
         self.print_indent("Run mode                  : %s" % self.decode_rm(rm))
@@ -435,6 +439,10 @@ class JXSCodestream:
             return "None"
         elif cpih == 1:
             return "RTC"
+        elif cpih == 2:
+            return "RGGB"
+        elif cpih == 3:
+            return "Star-Tetrix"
         else:
             return "invalid (%s)" % cpih
 
@@ -553,10 +561,68 @@ class JXSCodestream:
             self.print_indent("Band %3s gain,priority : %2s %2s" % (b,gb,pb))
             self.pos = self.pos + 2
             b = b + 1
-        if b != self.bandcount:
-            raise JP2Error("the number of weights/priorities in the WGT marker does not match the number of bands")
         self.end_marker()
 
+    def parse_NLT(self):
+        self.new_marker("NLT","Nonlinearity Marker")
+        tnlt = ord(self.buffer[4:5])
+        if tnlt == 1:
+            self.print_indent("NLT Type       : quadratic")
+            if len(self.buffer) != 2 + 2 + 1:
+                raise InvalidSizedMarker("Size of the NLT marker shall be 3 bytes")
+        elif tnlt == 2:
+            self.print_indent("NLT Type       : extended")
+#            if len(self.buffer) != 2 + 12:
+#                raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
+            t1 = ordl(self.buffer[5:9])
+            t2 = ordl(self.buffer[9:13])
+            e  = ord(self.buffer[13:14])
+            self.print_indent("Threshold t1   : %s" % t1)
+            self.print_indent("Threshold t2   : %s" % t2)
+            self.print_indent("Slope exponent : %s" % e)
+        self.end_marker()
+
+    def parse_CWD(self):
+        self.new_marker("CWD","Component Dependent Wavelet Decomposition Marker")
+        if len(self.buffer) != 2 + 2 + 1:
+            raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
+        sd = ord(self.buffer[4:5])
+        self.print_indent("Components excluded from DWT : %s" % sd)
+        bands = 2*min(self.hlevels,self.vlevels) + max(self.hlevels,self.vlevels) + 1
+        self.bandcount = (self.depth - sd) * bands + sd
+        self.end_marker()
+
+    def parse_CTS(self):
+        self.new_marker("CTS","Colour Transformation Specification Marker")
+        if len(self.buffer) != 2 + 4:
+            raise InvalidSizedMarker("Size of the CTS marker shall be 4 bytes")
+        cf = ord(self.buffer[4:5])
+        ex = ord(self.buffer[5:6])
+        if cf == 0:
+            xfo = "full"
+        elif cf == 1:
+            xfo = "vertical causal"
+        elif cf == 3:
+            xfo = "in-line"
+        else:
+            xfo = "invalid (%d)" % cf
+        self.print_indent("Transformation type : %s" % xfo)
+        self.print_indent("Red exponent        : %s" % (ex >> 4))
+        self.print_indent("Blue exponent       : %s" % (ex & 0x0f))
+        self.end_marker()
+
+    def parse_CRG(self):
+        self.new_marker("CRG","Component Registration Marker")
+        self.pos = 4
+        c = 0
+        while self.pos < len(self.buffer):
+            xc = ordw(self.buffer[self.pos:self.pos + 2])
+            yc = ordw(self.buffer[self.pos + 2:self.pos + 4])
+            self.print_indent("Component %s position : (0x%04x,0x%04x) = (%3d%%,%3d%%)" % (c,xc,yc,xc * 100 / 65536,yc * 100 / 65536))
+            self.pos = self.pos + 4
+            c = c + 1
+        self.end_marker()
+        
     def parse_SLC(self):
         self.new_marker("SLC","Slice Header")
         if len(self.buffer) != 2 + 4:
@@ -612,7 +678,7 @@ class JXSCodestream:
             raise RequiredMarkerMissing("SOI marker missing")
 
                 
-        while ordw(self.buffer) != 0xff11:
+        while len(self.buffer) >= 2 and ordw(self.buffer) != 0xff11:
             if ordw(self.buffer) == 0xff10:
                 self.new_marker("SOC","Start of Codestream");
                 self.end_marker()
@@ -624,6 +690,14 @@ class JXSCodestream:
                 self.parse_WGT()
             elif ordw(self.buffer) == 0xff15:
                 self.parse_COM()
+            elif ordw(self.buffer) == 0xff16:
+                self.parse_NLT()
+            elif ordw(self.buffer) == 0xff17:
+                self.parse_CWD()
+            elif ordw(self.buffer) == 0xff18:
+                self.parse_CTS()
+            elif ordw(self.buffer) == 0xff19:
+                self.parse_CRG()
             elif ordw(self.buffer) == 0xff20:
                 self.parse_SLC()
                 self.parse_Slice(file)
@@ -636,7 +710,8 @@ class JXSCodestream:
                 self.end_marker()
             self.load_buffer(file)
 
-        self.new_marker("EOI","End of image")
+        if len(self.buffer) >= 2:
+            self.new_marker("EOI","End of image")
         self.end_marker()
         oh = self.bytecount - self.datacount
         self.check_sublevel(self.bytecount)

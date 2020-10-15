@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jp2file.py,v 1.74 2019/07/26 06:36:10 thor Exp $
+# $Id: jp2file.py,v 1.75 2020/10/15 12:14:27 thor Exp $
 
 import getopt
 import sys
@@ -465,7 +465,20 @@ def parse_colorspec_box(box,buffer):
         if len(buffer) < 3:
             box.print_indent("invalid box")
             return
-        method = ord(buffer[0])
+        # Unfortunately, this thing comes in two variants, the
+        # jp2-inherited variant, and the iso-bmff variant.
+        # Urgh. Try a best-attempt to find out what it is.
+        id     = buffer[0:4]
+        offset = 4
+        if id == "nclx":
+            method = 5
+        elif id == "rICC":
+            method = 2
+        elif id == "prof":
+            method = 3
+        else:
+            method = ord(buffer[0])
+            offset = 3
         box.print_indent("Colour Specification Method:",0)
         if method == 1:
             print "enumerated colourspace"
@@ -479,13 +492,14 @@ def parse_colorspec_box(box,buffer):
             print "coding independent code points"
         else:
             print "unknown"
-	prec = ord(buffer[1])
-	if prec >= 128:
+        if offset == 3:
+	    prec = ord(buffer[1])
+	    if prec >= 128:
 		prec -= 256;
-        box.print_indent("Precedence   : %d" % prec)
-        box.print_indent("Approximation: %d" % ord(buffer[2]))
+                box.print_indent("Precedence   : %d" % prec)
+                box.print_indent("Approximation: %d" % ord(buffer[2]))
         if method == 1:
-            cs = ordl(buffer[3:7])
+            cs = ordl(buffer[offset:offset + 4])
             if len(buffer) != 7 and cs != 19 and cs != 14:
                 box.print_indent("invalid box")
                 return
@@ -501,13 +515,13 @@ def parse_colorspec_box(box,buffer):
                 if len(buffer) != 7+4*7:
                     box.print_indent("invalid box")
                     return
-                rl = ordl(buffer[7:11])
-                ol = ordl(buffer[11:15])
-                ra = ordl(buffer[15:19])
-                oa = ordl(buffer[19:23])
-                rb = ordl(buffer[23:27])
-                ob = ordl(buffer[27:31])
-                il = ordl(buffer[31:35])
+                rl = ordl(buffer[offset + 4:offset + 8])
+                ol = ordl(buffer[offset + 8:offset + 12])
+                ra = ordl(buffer[offset + 12:offset + 16])
+                oa = ordl(buffer[offset + 16:offset + 20])
+                rb = ordl(buffer[offset + 20:offset + 24])
+                ob = ordl(buffer[offset + 24:offset + 28])
+                il = ordl(buffer[offset + 28:offset + 32])
                 box.print_indent("Range  L     : %d" % rl)
                 box.print_indent("Origin L     : %d" % ol)
                 box.print_indent("Range  a     : %d" % ra)
@@ -520,12 +534,12 @@ def parse_colorspec_box(box,buffer):
                 if len(buffer) != 7+4*6:
                     box.print_indent("invalid box")
                     return
-                rj = ordl(buffer[7:11])
-                oj = ordl(buffer[11:15])
-                ra = ordl(buffer[15:19])
-                oa = ordl(buffer[19:23])
-                rb = ordl(buffer[23:27])
-                ob = ordl(buffer[27:31])
+                rj = ordl(buffer[offset + 4:offset + 8])
+                oj = ordl(buffer[offset + 8:offset + 12])
+                ra = ordl(buffer[offset + 12:offset + 16])
+                oa = ordl(buffer[offset + 16:offset + 20])
+                rb = ordl(buffer[offset + 20:offset + 24])
+                ob = ordl(buffer[offset + 24:offset + 28])
                 box.print_indent("Range  J     : %d" % rj)
                 box.print_indent("Origin J     : %d" % oj)
                 box.print_indent("Range  a     : %d" % ra)
@@ -566,21 +580,21 @@ def parse_colorspec_box(box,buffer):
                 print "unknown (%d)" % (cs)
         elif method == 2 or method == 3:
             box.print_indent("ICC Colour Profile:")
-            parse_icc(box.indent,buffer[3:])
+            parse_icc(box.indent,buffer[offset:])
             #box.print_hex(buffer[3:])
         elif method == 5:
-            cp = ordw(buffer[3:5])
-            tc = ordw(buffer[5:7])
-            mc = ordw(buffer[7:9])
-            v  = ord(buffer[9:10])
+            cp = ordw(buffer[offset:offset + 2])
+            tc = ordw(buffer[offset + 2:offset + 4])
+            mc = ordw(buffer[offset + 4:offset + 6])
+            v  = ord(buffer[offset + 6:offset + 7])
             if cp == 1 and tc == 13 and mc == 0 and v == 0:
                 colorspec = "IEC 61966-2-1 sRGB"
             elif cp == 1 and tc == 13 and mc == 1 and v == 0:
                 colorspec = "IEC 61966-2-1 sYCC"
             elif cp == 1 and tc == 1 and mc == 1 and v == 0:
-                colorspec = "BT.706-6 full range"
+                colorspec = "BT.709-6 full range"
             elif cp == 1 and tc == 1 and mc == 1 and v == 128:
-                colorspec = "BT.706-6 with head & toe region"
+                colorspec = "BT.709-6 with head & toe region"
             elif cp == 5 and tc == 6 and mc == 5 and v == 0:
                 colorspec = "BT.601-7 625 full range"
             elif cp == 5 and tc == 6 and mc == 5 and v == 128:
@@ -614,7 +628,7 @@ def parse_colorspec_box(box,buffer):
             box.print_indent("Colour Space      : %s" % colorspec)
         else:
             box.print_indent("Colour Data:")
-            box.print_hex(buffer[3:])
+            box.print_hex(buffer[offset:])
 
 def parse_palette_box(box, buffer):
 	print "Palette box"
@@ -1272,6 +1286,33 @@ def parse_stsd_box(box,buffer):
     box.print_indent("Number of entries     : %d" % count)
     buf = Buffer(buffer[8:])
     box = JP2Box(box,buf,8)
+    box.parse(superbox_hook)
+
+def parse_jxsm_box(box,buffer):
+    print "Visual sample entry"
+    offset = 6
+    box.print_indent("Data reference index  : %d" % ordw(buffer[offset:offset+2]))
+    offset = offset + 2 + 2*2 + 3*4
+    box.print_indent("Width                 : %d" % ordw(buffer[offset:offset+2]))
+    box.print_indent("Height                : %d" % ordw(buffer[offset+2:offset+4]))
+    box.print_indent("Horizontal resolution : %f" % (ordl(buffer[offset+4:offset+8]) / 65536.0))
+    box.print_indent("Vertical   resolution : %f" % (ordl(buffer[offset+8:offset+12])/ 65536.0))
+    offset = offset + 12 + 4 + 2
+    box.print_indent("Processor name        : %s" % fromCString(buffer[offset:offset+32]))
+    offset = offset + 32
+    depth  = ordw(buffer[offset:offset+2])
+    if depth == 0x18:
+        desc="color with no alpha"
+    elif depth == 0x28:
+        desc="grayscale with no alpha"
+    elif depth == 0x20:
+        desc="color or grayscale with alpha"
+    else:
+        desc="0x%02x (invalid)" % depth
+    box.print_indent("Depth                 : %s" % desc)
+    offset=offset+4
+    buf = Buffer(buffer[offset:])
+    box = JP2Box(box,buf,offset)
     box.parse(superbox_hook)
     
 def parse_mjp2_box(box,buffer):
@@ -1946,9 +1987,11 @@ def parse_superbox(box,boxtype):
     box.parse(superbox_hook)
     
 def superbox_hook(box,id,length):
-    if id == "jp2c" or id == "RESI" or id == "ARES" or id == "ALFA":
+    if id == "jp2c" or id == "jxsH" or id == "RESI" or id == "ARES" or id == "ALFA":
         if id == "jp2c":
             print "Codestream box"
+        elif id == "jxsH":
+            print "JPEG XS Header box"
         elif id == "ALFA":
             print "Alpha Codestream box"
         elif id == "ARES":
@@ -1956,8 +1999,13 @@ def superbox_hook(box,id,length):
         else:
             print "Residual Codestream box"
         if not ignore_codestream:
-            type = box.infile.read(2)
-            box.infile.seek(box.offset)
+            if hasattr(box.infile,'offset'):
+                cur  = box.infile.offset
+                type = box.infile.read(2)
+                box.infile.seek(cur)
+            else:
+                type = box.infile.read(2)
+                box.infile.seek(box.offset)
             if ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
                 jxr = JXRCodestream(box.infile,1)
                 jxr.parse()
@@ -2103,6 +2151,8 @@ def superbox_hook(box,id,length):
             parse_stsd_box(box,buffer)
         elif id == "mjp2":
             parse_mjp2_box(box,buffer)
+        elif id == "jxsm":
+            parse_jxsm_box(box,buffer)
         elif id == "jp2p":
             parse_jp2p_box(box,buffer)
         elif id == "jp2x":
