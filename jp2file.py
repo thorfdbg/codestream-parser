@@ -1981,6 +1981,61 @@ def parse_jpvi_box(box,buffer):
         resv = "invalid (%d)" % reserved
     box.print_indent("Reserved          : %s" % resv)
     
+# testBit() returns a nonzero result, 2**offset, if the bit at 'offset' is one.
+def testBit(int_type, offset):
+    mask = 1 << offset
+    return(int_type & mask)
+
+def parse_jumd_box(box):
+    box.print_indent("JUMBF Description box")
+    buffer = box.infile.read()
+    type= buffer[0:16]
+    box.print_indent("TYPE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
+           (ord(type[ 0]), ord(type[ 1]), ord(type[ 2]), ord(type[ 3]),
+            ord(type[ 4]), ord(type[ 5]), ord(type[ 6]), ord(type[ 7]),
+            ord(type[ 8]), ord(type[ 9]), ord(type[10]), ord(type[11]),
+            ord(type[12]), ord(type[13]), ord(type[14]), ord(type[15])))
+    toggles= ord(buffer[16:17])
+    box.print_indent("TOGGLES: %s" % bin(toggles))
+    opt_start = 17
+    if testBit(toggles,1):
+        label_len = 0
+        for i in range(opt_start,len(buffer)):
+            if ord(buffer[i:i+1]) == 0:
+                label_len = i
+        label = fromCString(buffer[opt_start:label_len])
+        box.print_indent("LABEL: %s" % label)
+        opt_start = label_len+1   # reset for new start
+    else:
+        box.print_indent("No Label")
+    if testBit(toggles,2):
+        id = ordl(buffer[opt_start:opt_start+4])
+        box.print_indent("ID: %s" % id)
+        opt_start = opt_start + 4
+    else:
+        box.print_indent("No ID")
+    if testBit(toggles,3):
+        sig= buffer[opt_start:opt_start+32]
+        box.print_indent("SIGNATURE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
+            (ord(sig[ 0]), ord(sig[ 1]), ord(sig[ 2]), ord(sig[ 3]),
+             ord(sig[ 4]), ord(sig[ 5]), ord(sig[ 6]), ord(sig[ 7]),
+             ord(sig[ 8]), ord(sig[ 9]), ord(sig[10]), ord(sig[11]),
+             ord(sig[12]), ord(sig[13]), ord(sig[14]), ord(sig[15]),
+             ord(sig[16]), ord(sig[17]), ord(sig[18]), ord(sig[19]),
+             ord(sig[20]), ord(sig[21]), ord(sig[22]), ord(sig[23]),
+             ord(sig[24]), ord(sig[25]), ord(sig[26]), ord(sig[27]),
+             ord(sig[28]), ord(sig[29]), ord(sig[30]), ord(sig[31])))
+    else:
+        box.print_indent("No Signature")
+
+def parse_json_box(box,buffer):
+    print "JSON box"
+    box.print_indent("Data:")
+    s = buffer
+    if s[len(s) - 1] == "\0":
+        s = s[:len(s) - 2]
+    box.print_indent(s)
+
 def parse_superbox(box,boxtype):
     print boxtype
     box = JP2Box(box,box.infile)
@@ -2070,6 +2125,11 @@ def superbox_hook(box,id,length):
         parse_superbox(box,"JPEG XT Alpha Merging Specification box")
     elif id == "jpvs":
         parse_superbox(box,"JPEG XS Video Support box")
+    elif id == "jumb":
+        parse_superbox(box,"JUMBF Box")
+    elif id == 'jumd':
+        # because there is a null term in the box, we need to do it this way...
+        parse_jumd_box(box)
     else:
         buffer = box.readbody()
         if id == "jP  ": # JP2 Signature Box
@@ -2233,6 +2293,8 @@ def superbox_hook(box,id,length):
             parse_jptp_box(box,buffer)
         elif id == 'jpvi':
             parse_jpvi_box(box,buffer)
+        elif id == 'json':
+            parse_json_box(box,buffer)
         else:
             box.print_indent("(unknown box)")
             box.print_hex(buffer)    
