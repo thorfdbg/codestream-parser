@@ -387,7 +387,6 @@ class JXSCodestream:
         self.profile     = ppih
         self.level       = plev
         self.longhdr     = lhdr
-        self.bandcount   = nc * (2*min(nlx,nly) + max(nlx,nly) + 1)
         if cw == 0:
             pwidthstr = "full width"
         else:
@@ -561,6 +560,7 @@ class JXSCodestream:
             self.print_indent("Band %3s gain,priority : %2s %2s" % (b,gb,pb))
             self.pos = self.pos + 2
             b = b + 1
+        self.bandcount = b
         self.end_marker()
 
     def parse_NLT(self):
@@ -590,8 +590,6 @@ class JXSCodestream:
             raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
         sd = ord(self.buffer[4:5])
         self.print_indent("Components excluded from DWT : %s" % sd)
-        bands = 2*min(self.hlevels,self.vlevels) + max(self.hlevels,self.vlevels) + 1
-        self.bandcount = (self.depth - sd) * bands + sd
         self.end_marker()
 
     def parse_CTS(self):
