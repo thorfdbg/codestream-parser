@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.11 2020/10/15 12:14:27 thor Exp $
+# $Id: jxscodestream.py,v 1.12 2020/12/02 14:28:40 thor Exp $
 
 import sys
 
@@ -568,12 +568,14 @@ class JXSCodestream:
         tnlt = ord(self.buffer[4:5])
         if tnlt == 1:
             self.print_indent("NLT Type       : quadratic")
-            if len(self.buffer) != 2 + 2 + 1:
-                raise InvalidSizedMarker("Size of the NLT marker shall be 3 bytes")
+            if len(self.buffer) != 2 + 2 + 1 + 2:
+                raise InvalidSizedMarker("Size of the NLT marker shall be 5 bytes")
+            t1 = ordw(self.buffer[5:7])
+            self.print_indent("DC Offset      : %s" % t1)
         elif tnlt == 2:
             self.print_indent("NLT Type       : extended")
-#            if len(self.buffer) != 2 + 12:
-#                raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
+            if len(self.buffer) != 2 + 12:
+                raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
             t1 = ordl(self.buffer[5:9])
             t2 = ordl(self.buffer[9:13])
             e  = ord(self.buffer[13:14])

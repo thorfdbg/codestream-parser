@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jp2file.py,v 1.75 2020/10/15 12:14:27 thor Exp $
+# $Id: jp2file.py,v 1.76 2020/11/20 08:46:20 thor Exp $
 
 import getopt
 import sys
