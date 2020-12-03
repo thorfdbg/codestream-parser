@@ -6,43 +6,10 @@ See LICENCE.txt for copyright and licensing conditions.
 
 import sys
 
-from jp2utils import *
-from jpgxtbox import *
-from jp2box import *
-from jp2file import *
+from jp2utils import print_indent, print_hex, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
+    RequiredMarkerMissing
+from jpgxtbox import BoxList
 
-#
-# Some Exceptions
-#
-
-class InvalidMarker(JP2Error):
-    def __init__(self, marker):
-        JP2Error.__init__(self, 'marker 0xff%s can\'t appear here' % (marker))
-        self.marker = marker
-
-class InvalidSizedMarker(JP2Error):
-    def __init__(self, marker):
-        JP2Error.__init__(self, 'invalid sized marker %s' % (marker))
-        self.marker = marker
-
-class InvalidMarkerField(JP2Error):
-    def __init__(self, marker, field):
-        JP2Error.__init__(self, 'invalid field %s in marker %s' % (field, marker))
-        self.marker = marker
-        self.field  = field
-
-class RequiredMarkerMissing(JP2Error):
-    def __init__(self, marker):
-        JP2Error.__init__(self, 'required marker 0xff%s missing' % (marker))
-        self.marker = marker
-
-class UnexpectedEOC(JP2Error):
-    def __init__(self):
-        JP2Error.__init__(self, 'unexpected end of codestream')
-
-class MisplacedData(JP2Error):
-    def __init__(self):
-        JP2Error.__init__(self, 'marker expected')
 
 def decode_Profile(profile):
     if profile == 0x0000:
@@ -65,6 +32,7 @@ def decode_Profile(profile):
         return "high 4444.12"
     else:
         return "invalid (0x%x)" % profile
+
 
 def decode_Level(level):
     lvl = level >> 8
@@ -103,53 +71,59 @@ def decode_Level(level):
         sstr = "3bpp"
     else:
         sstr = "invalid (0x%x)" % sub
-    return "%s@%s" % (lstr,sstr)
+    return "%s@%s" % (lstr, sstr)
+
+
 #
 # The Codestream Class
 #
 
 class JXSCodestream:
-    def __init__(self, indent = 0, offset = 0):
+    def __init__(self, indent=0, offset=0):
         self.indent = indent
-        self.datacount   = 0
-        self.bytecount   = 0
-        self.offset      = offset
-        self.markerpos   = 0
-        self.frametype   = 0
-        self.c0          = 0
-        self.c1          = 0
+        self.datacount = 0
+        self.bytecount = 0
+        self.pos = 0
+        self.offset = offset
+        self.markerpos = 0
+        self.frametype = 0
+        self.c0 = 0
+        self.c1 = 0
         self.sliceheight = 0
-        self.ypos        = 0
-        self.precheight  = 0
-        self.precwidth   = 0
-        self.columnsize  = 0
-        self.width       = 0
-        self.height      = 0
-        self.hlevels     = 0
-        self.vlevels     = 0
-        self.bandcount   = 0
-        self.precision   = 0
-        self.depth       = 0
-        self.profile     = 0
-        self.level       = 0
-        self.nbpp        = 0
-        self.sampling    = ""
-        self.quant       = ""
-        self.boxlist     = BoxList()
+        self.ypos = 0
+        self.precheight = 0
+        self.precwidth = 0
+        self.columnsize = 0
+        self.width = 0
+        self.height = 0
+        self.hlevels = 0
+        self.vlevels = 0
+        self.bandcount = 0
+        self.precision = 0
+        self.depth = 0
+        self.profile = 0
+        self.level = 0
+        self.nbpp = 0
+        self.sampling = ""
+        self.quant = ""
+        self.boxlist = BoxList()
+        self.headers = None
+        self.buffer = None
+        self.longhdr = None
 
-    def print_indent(self, buffer, nl = 1):
-        print_indent(buffer, self.indent, nl)
+    def print_indent(self, buf, nl=1):
+        print_indent(buf, self.indent, nl)
 
     def new_marker(self, name, description):
         self.print_indent("%-8s: New marker: %s (%s)" % \
-                          (str(self.markerpos),name, description))
+                          (str(self.markerpos), name, description))
         print
-        self.indent = self.indent + 1
+        self.indent += 1
         self.headers = []
 
     def end_marker(self):
         self.flush_marker()
-        self.indent = self.indent - 1
+        self.indent -= 1
         print
 
     def flush_marker(self):
@@ -158,45 +132,44 @@ class JXSCodestream:
             for header in self.headers:
                 maxlen = max(maxlen, len(header[0]))
             for header in self.headers:
-                s = ""
-                for i in range(maxlen - len(header[0])):
-                    s = s + " "
+                s = " " * (maxlen - len(header[0]))
                 self.print_indent("%s%s : %s" % (header[0], s, header[1]))
             print
             self.headers = []
 
     def load_marker(self, file, marker):
-        mrk    = ordw(marker)
-        if (mrk >= 0xff10 and mrk <= 0xff11):
+        mrk = ordw(marker)
+        if 0xff10 <= mrk <= 0xff11:
             self.buffer = marker
-        elif mrk == 0xff12 or mrk == 0xff13 or mrk == 0xff14 or mrk == 0xff15 or mrk == 0xff16 or mrk == 0xff17 or mrk == 0xff18 or mrk == 0xff19 or mrk == 0xff20 or mrk == 0xff50:
-            size   = file.read(2)
-            ln     = ordw(size)
-            if (ln < 2):
+        elif mrk == 0xff12 or mrk == 0xff13 or mrk == 0xff14 or mrk == 0xff15 or mrk == 0xff16\
+                or mrk == 0xff17 or mrk == 0xff18 or mrk == 0xff19 or mrk == 0xff20 or mrk == 0xff50:
+            size = file.read(2)
+            ln = ordw(size)
+            if ln < 2:
                 raise InvalidSizedMarker("Marker too short")
-            self.buffer = marker + size + file.read(ln-2)
+            self.buffer = marker + size + file.read(ln - 2)
             if len(self.buffer) != ln + 2:
                 raise UnexpectedEOC()
         else:
             raise MisplacedData()
-        self.bytecount  = self.bytecount + len(self.buffer)
-        self.pos        = 0
-        
+        self.bytecount += len(self.buffer)
+        self.pos = 0
+
     def load_buffer(self, file):
         self.markerpos = self.offset
         marker = file.read(2)
 
         if len(marker) == 0:
             self.buffer = []
-        else:  
+        else:
             if len(marker) < 2:
                 raise UnexpectedEOC()
-            self.load_marker(file,marker)
-            self.offset = self.offset + len(self.buffer)
+            self.load_marker(file, marker)
+            self.offset += len(self.buffer)
 
     def check_profile(self):
-        sliceheight = self.sliceheight << self.vlevels # this is in image lines (grid points)
-        if self.profile == 0x1500: #light 422.10
+        sliceheight = self.sliceheight << self.vlevels  # this is in image lines (grid points)
+        if self.profile == 0x1500:  # light 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Light422.10 only supports 8 and 10 bit sample precision")
             if self.sampling != "400" and self.sampling != "422" and self.sampling != "420":
@@ -210,7 +183,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("Light422.10 only supports slices of 16 grid points")
             self.nbpp = 20
-        elif self.profile == 0x1a00: #light 444.12
+        elif self.profile == 0x1a00:  # light 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Light444.12 only supports 8,10 and 12 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
@@ -224,7 +197,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("Light444.12 only supports slices of 16 grid points")
             self.nbpp = 36
-        elif self.profile == 0x2500: #light subline 422.10
+        elif self.profile == 0x2500:  # light subline 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Light subline 422.10 only supports 8 and 10 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422":
@@ -234,7 +207,7 @@ class JXSCodestream:
             if self.precwidth > 2048:
                 raise JP2Error("Light subline 422.10 allows precincts to be at most 2048 grid points large")
             self.nbpp = 20
-        elif self.profile == 0x3540: #main 422.10
+        elif self.profile == 0x3540:  # main 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Main 422.10 only supports 8 and 10 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422":
@@ -246,7 +219,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("Main422.10 only supports slices of 16 grid points")
             self.nbpp = 20
-        elif self.profile == 0x3a40: #main 444.12
+        elif self.profile == 0x3a40:  # main 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main444.12 only supports 8,10 and 12 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
@@ -258,7 +231,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("Main444.10 only supports slices of 16 grid points")
             self.nbpp = 36
-        elif self.profile == 0x3e40: #main 4444.12
+        elif self.profile == 0x3e40:  # main 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main4444.12 only supports 8,10 and 12 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
@@ -270,7 +243,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("Main4444.12 only supports slices of 16 grid points")
             self.nbpp = 48
-        elif self.profile == 0x4a40: #high 444.12
+        elif self.profile == 0x4a40:  # high 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High444.12 only supports 8,10 and 12 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
@@ -282,7 +255,7 @@ class JXSCodestream:
             if sliceheight != 16:
                 raise JP2Error("High444.12 only supports slices of 16 grid points")
             self.nbpp = 36
-        elif self.profile == 0x4e40: #high 4444.12
+        elif self.profile == 0x4e40:  # high 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High4444.12 only supports 8,10 and 12 bit sample precision")
             if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
@@ -296,22 +269,22 @@ class JXSCodestream:
             self.nbpp = 48
         elif self.profile != 0x0000:
             raise JP2Error("invalid profile indicator")
-            
+
     def check_level(self):
-        level = self.level >> 8 # the rest is the sublevel
-        if level == 0x10: #2k-1 level
+        level = self.level >> 8  # the rest is the sublevel
+        if level == 0x10:  # 2k-1 level
             if self.width > 2048 or self.height > 8192 or self.width * self.height > 2048 * 2048:
                 raise JP2Error("image is too large for 2K-1 level")
-        elif level == 0x20: #4k-1
+        elif level == 0x20:  # 4k-1
             if self.width > 4096 or self.height > 16384 or self.width * self.height > 4096 * 4096:
                 raise JP2Error("image is too large for 4K-1 level")
-        elif level == 0x24: #4k-2
+        elif level == 0x24:  # 4k-2
             if self.width > 4096 or self.height > 16384 or self.width * self.height > 4096 * 4096:
                 raise JP2Error("image is too large for 4K-2 level")
-        elif level == 0x28: #4k-3
+        elif level == 0x28:  # 4k-3
             if self.width > 4096 or self.height > 32768 or self.width * self.height > 4096 * 8192:
                 raise JP2Error("image is too large for 4K-3 level")
-        elif level == 0x30: #8k-1
+        elif level == 0x30:  # 8k-1
             if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 4096:
                 raise JP2Error("image is too large for 8K-1 level")
         elif level == 0x34:
@@ -326,27 +299,27 @@ class JXSCodestream:
         elif level != 0x00:
             raise JP2Error("invalid level specification")
 
-    def check_sublevel(self,bytecount):
+    def check_sublevel(self, bytecount):
         sublevel = self.level & 0xff
-        bpp      = 8.0 * bytecount / (self.width * self.height)
-        if sublevel == 0x80: # full
+        bpp = 8.0 * bytecount / (self.width * self.height)
+        if sublevel == 0x80:  # full
             if bpp > self.nbpp:
                 raise JP2Error("bitrate exceeds maximum permissible bitrate of %d for full sublevel" % self.nbpp)
-        elif sublevel == 0x10: # 12bpp
+        elif sublevel == 0x10:  # 12bpp
             if bpp > 12.0:
                 raise JP2Error("bitrate exceeds 12bpp for 12bpp sublevel")
-        elif sublevel == 0x0a: # 9bpp
+        elif sublevel == 0x0a:  # 9bpp
             if bpp > 9.0:
                 raise JP2Error("bitrate exceeds 9bpp for 9bpp sublevel")
-        elif sublevel == 0x08: #6bpp
+        elif sublevel == 0x08:  # 6bpp
             if bpp > 6.0:
                 raise JP2Error("bitrate exceeds 6bpp for 6bpp sublevel")
-        elif sublevel == 0x04: #3bpp
+        elif sublevel == 0x04:  # 3bpp
             if bpp > 3.0:
                 raise JP2Error("bitrate exceeds 3bpp for 3bpp sublevel")
         elif sublevel != 0x00:
-                raise JP2Error("invalid sublevel specification")
-        
+            raise JP2Error("invalid sublevel specification")
+
     def parse_PIH(self):
         self.new_marker("PIH", "Picture header")
         self.pos = 4
@@ -355,41 +328,41 @@ class JXSCodestream:
         lcod = ordl(self.buffer[self.pos + 0:self.pos + 4])
         ppih = ordw(self.buffer[self.pos + 4:self.pos + 6])
         plev = ordw(self.buffer[self.pos + 6:self.pos + 8])
-        wf   = ordw(self.buffer[self.pos + 8:self.pos +10])
-        hf   = ordw(self.buffer[self.pos +10:self.pos +12])
-        cw   = ordw(self.buffer[self.pos +12:self.pos +14])
-        hsl  = ordw(self.buffer[self.pos +14:self.pos +16])
-        nc   = ord(self.buffer[self.pos +16:self.pos +17])
-        ng   = ord(self.buffer[self.pos +17:self.pos +18])
-        ss   = ord(self.buffer[self.pos +18:self.pos +19])
-        bw   = ord(self.buffer[self.pos +19:self.pos +20])
-        fqbr = ord(self.buffer[self.pos +20:self.pos +21])
-        fq   = fqbr >> 4
-        br   = fqbr & 15
-        misc = ord(self.buffer[self.pos +21:self.pos +22])
+        wf = ordw(self.buffer[self.pos + 8:self.pos + 10])
+        hf = ordw(self.buffer[self.pos + 10:self.pos + 12])
+        cw = ordw(self.buffer[self.pos + 12:self.pos + 14])
+        hsl = ordw(self.buffer[self.pos + 14:self.pos + 16])
+        nc = ord(self.buffer[self.pos + 16])
+        ng = ord(self.buffer[self.pos + 17])
+        ss = ord(self.buffer[self.pos + 18])
+        bw = ord(self.buffer[self.pos + 19])
+        fqbr = ord(self.buffer[self.pos + 20])
+        fq = fqbr >> 4
+        br = fqbr & 15
+        misc = ord(self.buffer[self.pos + 21])
         fslc = misc >> 7
         ppoc = (misc >> 4) & 7
         cpih = misc & 15
-        wavl = ord(self.buffer[self.pos +22:self.pos + 23])
-        nlx  = wavl >> 4
-        nly  = wavl & 15
-        cod  = ord(self.buffer[self.pos +23:self.pos + 24])
+        wavl = ord(self.buffer[self.pos + 22])
+        nlx = wavl >> 4
+        nly = wavl & 15
+        cod = ord(self.buffer[self.pos + 23])
         lhdr = (cod >> 7) & 1
         qpih = (cod >> 4) & 7
-        fs   = (cod >> 2) & 2
-        rm   = cod & 3
+        fs = (cod >> 2) & 2
+        rm = cod & 3
         self.sliceheight = hsl
-        self.precheight  = 1 << nly
-        self.width       = wf
-        self.height      = hf
-        self.depth       = nc
-        self.columnsize  = cw
-        self.hlevels     = nlx
-        self.vlevels     = nly
-        self.profile     = ppih
-        self.level       = plev
-        self.longhdr     = lhdr
-        self.bandcount   = nc * (2*min(nlx,nly) + max(nlx,nly) + 1)
+        self.precheight = 1 << nly
+        self.width = wf
+        self.height = hf
+        self.depth = nc
+        self.columnsize = cw
+        self.hlevels = nlx
+        self.vlevels = nly
+        self.profile = ppih
+        self.level = plev
+        self.longhdr = lhdr
+        self.bandcount = nc * (2 * min(nlx, nly) + max(nlx, nly) + 1)
         if cw == 0:
             pwidthstr = "full width"
         else:
@@ -408,7 +381,7 @@ class JXSCodestream:
         self.print_indent("Width  of the frame       : %s" % wf)
         self.print_indent("Height of the frame       : %s" % hf)
         self.print_indent("Precinct width            : %s " % pwidthstr)
-        self.print_indent("Slice height              : %s lines"       % (hsl << nly))
+        self.print_indent("Slice height              : %s lines" % (hsl << nly))
         self.print_indent("Number of components      : %s" % nc)
         self.print_indent("Code group size           : %s" % ng)
         self.print_indent("Significance group size   : %s code groups" % ss)
@@ -426,7 +399,7 @@ class JXSCodestream:
         self.print_indent("Run mode                  : %s" % self.decode_rm(rm))
         self.end_marker()
 
-    def decode_qpih(self,qpih):
+    def decode_qpih(self, qpih):
         if qpih == 0:
             self.quant = "deadzone"
             return "deadzone"
@@ -436,7 +409,7 @@ class JXSCodestream:
         else:
             return "invalid (%s)" % qpih
 
-    def decode_cpih(self,cpih):
+    def decode_cpih(self, cpih):
         if cpih == 0:
             return "None"
         elif cpih == 1:
@@ -448,7 +421,7 @@ class JXSCodestream:
         else:
             return "invalid (%s)" % cpih
 
-    def decode_fs(self,fs):
+    def decode_fs(self, fs):
         if fs == 0:
             return "encoded jointly"
         elif fs == 1:
@@ -456,7 +429,7 @@ class JXSCodestream:
         else:
             return "invalid (%s)" % fs
 
-    def decode_rm(self,rm):
+    def decode_rm(self, rm):
         if rm == 0:
             return "zero prediction"
         elif rm == 1:
@@ -471,8 +444,8 @@ class JXSCodestream:
         maxsx = 0
         self.sampling = "400"
         while self.pos < len(self.buffer):
-            bc = ord(self.buffer[self.pos:self.pos+1])
-            xy = ord(self.buffer[self.pos+1:self.pos+2])
+            bc = ord(self.buffer[self.pos])
+            xy = ord(self.buffer[self.pos + 1])
             sx = xy >> 4
             sy = xy & 15
             if c == 0:
@@ -483,9 +456,9 @@ class JXSCodestream:
                 maxsx = sx
             if c == 0 or c == 3:
                 if sx != 1 or sy != 1:
-                    self.sampling == "unknown"
+                    self.sampling = "unknown"
                 if c == 3:
-                    self.sampling = self.sampling + "4"
+                    self.sampling += "4"
             elif c > 3:
                 self.sampling = "unknown"
             else:
@@ -507,11 +480,11 @@ class JXSCodestream:
                 elif self.sampling == "420":
                     if sx != 2 or sy != 2:
                         self.sampling = "unknown"
-            self.print_indent("Component %s precision              : %s bits" % (c,bc))
+            self.print_indent("Component %s precision              : %s bits" % (c, bc))
             self.print_indent("Component %s horizontal subsampling : %s" % (c, sx))
             self.print_indent("Component %s vertical   subsampling : %s" % (c, sy))
-            c = c + 1
-            self.pos = self.pos + 2
+            c += 1
+            self.pos += 2
         if self.columnsize == 0:
             self.precwidth = self.width
         else:
@@ -522,9 +495,9 @@ class JXSCodestream:
         self.check_profile()
         self.check_level()
         self.end_marker()
-            
+
     def parse_COM(self):
-        self.new_marker("COM","Extensions Marker")
+        self.new_marker("COM", "Extensions Marker")
         tcom = ordw(self.buffer[4:6])
         data = self.buffer[6:]
         if tcom == 0:
@@ -540,33 +513,33 @@ class JXSCodestream:
         self.end_marker()
 
     def parse_CAP(self):
-        self.new_marker("CAP","Capabilities Marker")
+        self.new_marker("CAP", "Capabilities Marker")
         self.pos = 4
         while self.pos < len(self.buffer):
             for bit in range(8):
-                cap = ((ord(self.buffer[self.pos:self.pos + 1])) >> (7 - bit)) & 1
+                cap = ((ord(self.buffer[self.pos])) >> (7 - bit)) & 1
                 if cap == 0:
                     required = "not required"
                 else:
                     required = "is required"
-                self.print_indent("Capability %3s : %s" % (((self.pos << 3) + bit - 32,required)))
-            self.pos = self.pos + 1
+                self.print_indent("Capability %3s : %s" % ((self.pos << 3) + bit - 32, required))
+            self.pos += 1
         self.end_marker()
 
     def parse_WGT(self):
-        self.new_marker("WGT","Weights Table")
+        self.new_marker("WGT", "Weights Table")
         self.pos = 4
         b = 0
         while self.pos < len(self.buffer):
-            gb = ord(self.buffer[self.pos:self.pos + 1])
-            pb = ord(self.buffer[self.pos + 1:self.pos + 2])
-            self.print_indent("Band %3s gain,priority : %2s %2s" % (b,gb,pb))
-            self.pos = self.pos + 2
-            b = b + 1
+            gb = ord(self.buffer[self.pos])
+            pb = ord(self.buffer[self.pos + 1])
+            self.print_indent("Band %3s gain,priority : %2s %2s" % (b, gb, pb))
+            self.pos += 2
+            b += 1
         self.end_marker()
 
     def parse_NLT(self):
-        self.new_marker("NLT","Nonlinearity Marker")
+        self.new_marker("NLT", "Nonlinearity Marker")
         tnlt = ord(self.buffer[4:5])
         if tnlt == 1:
             self.print_indent("NLT Type       : quadratic")
@@ -580,28 +553,28 @@ class JXSCodestream:
                 raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
             t1 = ordl(self.buffer[5:9])
             t2 = ordl(self.buffer[9:13])
-            e  = ord(self.buffer[13:14])
+            e = ord(self.buffer[13])
             self.print_indent("Threshold t1   : %s" % t1)
             self.print_indent("Threshold t2   : %s" % t2)
             self.print_indent("Slope exponent : %s" % e)
         self.end_marker()
 
     def parse_CWD(self):
-        self.new_marker("CWD","Component Dependent Wavelet Decomposition Marker")
+        self.new_marker("CWD", "Component Dependent Wavelet Decomposition Marker")
         if len(self.buffer) != 2 + 2 + 1:
             raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
-        sd = ord(self.buffer[4:5])
+        sd = ord(self.buffer[4])
         self.print_indent("Components excluded from DWT : %s" % sd)
-        bands = 2*min(self.hlevels,self.vlevels) + max(self.hlevels,self.vlevels) + 1
+        bands = 2 * min(self.hlevels, self.vlevels) + max(self.hlevels, self.vlevels) + 1
         self.bandcount = (self.depth - sd) * bands + sd
         self.end_marker()
 
     def parse_CTS(self):
-        self.new_marker("CTS","Colour Transformation Specification Marker")
+        self.new_marker("CTS", "Colour Transformation Specification Marker")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the CTS marker shall be 4 bytes")
-        cf = ord(self.buffer[4:5])
-        ex = ord(self.buffer[5:6])
+        cf = ord(self.buffer[4])
+        ex = ord(self.buffer[5])
         if cf == 0:
             xfo = "full"
         elif cf == 1:
@@ -616,34 +589,35 @@ class JXSCodestream:
         self.end_marker()
 
     def parse_CRG(self):
-        self.new_marker("CRG","Component Registration Marker")
+        self.new_marker("CRG", "Component Registration Marker")
         self.pos = 4
         c = 0
         while self.pos < len(self.buffer):
             xc = ordw(self.buffer[self.pos:self.pos + 2])
             yc = ordw(self.buffer[self.pos + 2:self.pos + 4])
-            self.print_indent("Component %s position : (0x%04x,0x%04x) = (%3d%%,%3d%%)" % (c,xc,yc,xc * 100 / 65536,yc * 100 / 65536))
+            self.print_indent("Component %s position : (0x%04x,0x%04x) = (%3d%%,%3d%%)" % (
+            c, xc, yc, xc * 100 / 65536, yc * 100 / 65536))
             self.pos = self.pos + 4
-            c = c + 1
+            c += 1
         self.end_marker()
-        
+
     def parse_SLC(self):
-        self.new_marker("SLC","Slice Header")
+        self.new_marker("SLC", "Slice Header")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the SLC marker shall be 4 bytes")
         self.print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
         self.end_marker()
 
-    def parse_Precinct(self,file,px,py):
-        self.print_indent("%-8s: Precinct (%s,%s)" % (self.offset,px,py))
+    def parse_Precinct(self, file, px, py):
+        self.print_indent("%-8s: Precinct (%s,%s)" % (self.offset, px, py))
         self.indent = self.indent + 1
-        bytesize     = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
-        header       = file.read(bytesize)
-        self.offset  = self.offset + bytesize
-        psize        = (ord(header[0:1]) << 16) + (ord(header[1:2]) << 8) + (ord(header[2:3]) << 0)
-        qp           = ord(header[3:4])
-        rp           = ord(header[4:5])
-        self.print_indent("Data length   : %s bytes" %  psize)
+        bytesize = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
+        header = file.read(bytesize)
+        self.offset += bytesize
+        psize = (ord(header[0:1]) << 16) + (ord(header[1:2]) << 8) + (ord(header[2:3]) << 0)
+        qp = ord(header[3])
+        rp = ord(header[4])
+        self.print_indent("Data length   : %s bytes" % psize)
         self.print_indent("Quantization  : %s" % qp)
         self.print_indent("Refinement    : %s" % rp)
         for b in range(self.bandcount):
@@ -654,37 +628,36 @@ class JXSCodestream:
                 modestr = "vertical prediction, no sigflags"
             elif mode == 2:
                 modestr = "no prediction, sigflags"
-            elif mode == 3:
+            else:  # elif mode == 3:
                 modestr = "vertical prediction, sigflags"
-            self.print_indent("Band %3s mode : %s" % (b,modestr))
+            self.print_indent("Band %3s mode : %s" % (b, modestr))
         file.read(psize)
         print
-        self.offset    = self.offset + psize
-        self.datacount = self.datacount + psize
-        self.bytecount = self.bytecount + psize + bytesize
-        self.indent    = self.indent - 1
-        
-    def parse_Slice(self,file):
+        self.offset += psize
+        self.datacount += psize
+        self.bytecount += psize + bytesize
+        self.indent -= 1
+
+    def parse_Slice(self, file):
         for py in range(self.sliceheight):
             if self.ypos < self.height:
-                for px in range(0,self.width,self.precwidth):
-                    self.parse_Precinct(file,px,self.ypos / self.precheight)
-            self.ypos = self.ypos + self.precheight
+                for px in range(0, self.width, self.precwidth):
+                    self.parse_Precinct(file, px, self.ypos / self.precheight)
+            self.ypos += self.precheight
 
     def stream_parse(self, file, startpos):
-        self.pos       = 0
+        self.pos = 0
         self.datacount = 0
         self.bytecount = 0
-        self.offset    = startpos
+        self.offset = startpos
 
         self.load_buffer(file)
         if ordw(self.buffer) != 0xff10:
             raise RequiredMarkerMissing("SOI marker missing")
 
-                
         while len(self.buffer) >= 2 and ordw(self.buffer) != 0xff11:
             if ordw(self.buffer) == 0xff10:
-                self.new_marker("SOC","Start of Codestream");
+                self.new_marker("SOC", "Start of Codestream")
                 self.end_marker()
             elif ordw(self.buffer) == 0xff12:
                 self.parse_PIH()
@@ -708,14 +681,14 @@ class JXSCodestream:
             elif ordw(self.buffer) == 0xff50:
                 self.parse_CAP()
             else:
-                self.new_marker("???","Unknown marker %04x" % marker)
+                self.new_marker("???", "Unknown marker %04x" % ordw(self.buffer))
                 if len(self.buffer) < 256:
                     print_hex(self.buffer)
                 self.end_marker()
             self.load_buffer(file)
 
         if len(self.buffer) >= 2:
-            self.new_marker("EOI","End of image")
+            self.new_marker("EOI", "End of image")
         self.end_marker()
         oh = self.bytecount - self.datacount
         self.check_sublevel(self.bytecount)
@@ -731,19 +704,19 @@ class JXSCodestream:
 if __name__ == "__main__":
     # Read Arguments
     if len(sys.argv) != 2:
-        print "Usage: %s FILE" % (sys.argv[0])
+        print("Usage: %s FILE" % (sys.argv[0]))
         sys.exit(1)
 
-    print "###############################################################"
-    print "# JPG codestream log file generated by jpgcodestream.py       #"
-    print "###############################################################"
-    print
+    print("###############################################################")
+    print("# JPG codestream log file generated by jpgcodestream.py       #")
+    print("###############################################################")
+    print("")
 
     # Parse Files
-    filename  = sys.argv[1]
-    file = open(filename,"rb")
-    jxs  = JXSCodestream()
+    filename = sys.argv[1]
+    file = open(filename, "rb")
+    jxs = JXSCodestream()
     try:
-        jxs.stream_parse(file,0)        
+        jxs.stream_parse(file, 0)
     except JP2Error, e:
-        print '***', str(e)
+        print("***{}".format(str(e)))

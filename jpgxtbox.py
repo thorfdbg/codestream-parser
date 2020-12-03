@@ -4,19 +4,11 @@ JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
 
-import sys
 import StringIO
 
 from jp2utils import *
 from jp2box import *
 
-class InvalidBoxSize(JP2Error):
-    def __init__(self):
-        JP2Error.__init__(self, 'found an invalid sized JPEG XT box')
-
-class BoxSizesInconsistent(JP2Error):
-    def __init__(self):
-        JP2Error.__init__(self, 'box sizes are not consistent over box segments')
 
 class BoxSegment:
     def __init__(self,buffer,offset):
@@ -25,7 +17,7 @@ class BoxSegment:
         self.seq=ordl(buffer[8:12])
         self.lbox=ordl(buffer[12:16])
         if self.lbox != 1 and self.lbox < 8:
-            raise InvalidBoxSize
+            raise InvalidBoxSize()
         self.type=buffer[16:20]
         if self.lbox == 1:
             self.lbox=ordq(buffer[20:28])
