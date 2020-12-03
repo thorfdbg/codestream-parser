@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jp2file.py,v 1.76 2020/11/20 08:46:20 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import getopt
 import sys

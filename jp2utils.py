@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jp2utils.py,v 1.19 2016/06/01 16:18:59 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 class JP2Error(Exception):
     def __init__(self, reason):

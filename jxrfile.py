@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jxrfile.py,v 1.14 2017/01/31 12:29:35 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import getopt
 import sys

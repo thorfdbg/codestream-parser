@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jxscodestream.py,v 1.12 2020/12/02 14:28:40 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import sys
 

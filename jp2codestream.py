@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jp2codestream.py,v 1.47 2019/07/26 07:08:26 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import sys
 

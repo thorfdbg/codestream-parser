@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: icc.py,v 1.8 2016/06/01 16:18:58 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 from jp2utils import *
 import getopt

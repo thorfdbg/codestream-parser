@@ -1,6 +1,8 @@
-#!/usr/bin/python
-
-# $Id: jp2box.py,v 1.16 2016/06/01 16:18:58 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import sys
 import string

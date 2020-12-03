@@ -1,5 +1,8 @@
-
-# $Id: jpgxtbox.py,v 1.3 2016/06/01 16:18:59 thor Exp $
+# -*- coding: utf-8 -*-
+"""
+JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
+See LICENCE.txt for copyright and licensing conditions.
+"""
 
 import sys
 import StringIO
