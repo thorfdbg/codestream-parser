@@ -2003,6 +2003,7 @@ def parse_jumd_box(box):
         for i in range(opt_start,len(buffer)):
             if ord(buffer[i:i+1]) == 0:
                 label_len = i
+                break
         label = fromCString(buffer[opt_start:label_len])
         box.print_indent("LABEL: %s" % label)
         opt_start = label_len+1   # reset for new start
