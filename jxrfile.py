@@ -7,7 +7,7 @@ See LICENCE.txt for copyright and licensing conditions.
 import getopt
 import sys
 
-from jp2utils import print_indent, print_hex, lordl, lordw, lordq, ordw, ordl, ordq,\
+from jp2utils import print_indent, lordl, lordw, lordq, ordw, ordl, ordq,\
     ieee_float_to_float, ieee_double_to_float, JP2Error, BaseCodestream
 from icc import parse_icc
 
@@ -54,18 +54,18 @@ class JXRCodestream(BaseCodestream):
         print("%i:" % self.infile.tell())
 
     def parse_image_header(self):
-        self.print_indent("Image Header Contents:")
-        self.indent += 1
+        self._print_indent("Image Header Contents:")
+        self._indent += 1
         gdi = self.infile.read(8)
-        self.print_indent("GDI Signature     : %s" % gdi[0:7])
+        self._print_indent("GDI Signature     : %s" % gdi[0:7])
         flags = ord(self.infile.read(1))
-        self.print_indent("Reserved B        : 0x%01x" % (flags >> 4))
+        self._print_indent("Reserved B        : 0x%01x" % (flags >> 4))
         if flags & 0x08 != 0:
             hard_tiling = "Enabled"
         else:
             hard_tiling = "Disabled"
-        self.print_indent("Hard Tiling       : %s" % hard_tiling)
-        self.print_indent("Reserved C        : 0x%01x" % (flags & 0x07))
+        self._print_indent("Hard Tiling       : %s" % hard_tiling)
+        self._print_indent("Reserved C        : 0x%01x" % (flags & 0x07))
         flags = ord(self.infile.read(1))
         if flags & 0x80 != 0:
             tiling = "Enabled"
@@ -73,13 +73,13 @@ class JXRCodestream(BaseCodestream):
         else:
             tiling = "Disabled"
             tiles = False
-        self.print_indent("Tiling            : %s" % tiling)
+        self._print_indent("Tiling            : %s" % tiling)
         if flags & 0x40 != 0:
             mode = "Frequency"
             self.frequency_mode = True
         else:
             mode = "Spatial"
-        self.print_indent("Progression       : %s" % mode)
+        self._print_indent("Progression       : %s" % mode)
         xfrm = (flags >> 3) & 0x07
         rot = ""
         if xfrm == 0:
@@ -90,14 +90,14 @@ class JXRCodestream(BaseCodestream):
             rot += "Flip Horizontal "
         if xfrm & 4 != 0:
             rot += "Rotate Clockwise "
-        self.print_indent("Orientation       : %s" % rot)
+        self._print_indent("Orientation       : %s" % rot)
         if flags & 0x04:
             self.index_table_present = True
             idx = "Yes"
         else:
             idx = "No"
-        self.print_indent("Index Table       : %s" % idx)
-        self.print_indent("Overlap Mode      : %d" % (flags & 0x03))
+        self._print_indent("Index Table       : %s" % idx)
+        self._print_indent("Overlap Mode      : %d" % (flags & 0x03))
         flags = ord(self.infile.read(1))
         if flags & 0x80 != 0:
             shdr = "Short Headers"
@@ -105,42 +105,42 @@ class JXRCodestream(BaseCodestream):
         else:
             shdr = "Long Headers"
             short = False
-        self.print_indent("Header Format     : %s" % shdr)
+        self._print_indent("Header Format     : %s" % shdr)
         if flags & 0x40 != 0:
             lflg = "32 bit integers required"
         else:
             lflg = "16 bit integers sufficient"
-        self.print_indent("Arithmetics       : %s" % lflg)
+        self._print_indent("Arithmetics       : %s" % lflg)
         if flags & 0x20 != 0:
             windowing = True
             win = "Present"
         else:
             windowing = False
             win = "Not Present (full image)"
-        self.print_indent("View Window       : %s" % win)
+        self._print_indent("View Window       : %s" % win)
         if flags & 0x10 != 0:
             trim = "Enabled"
             self.trim_flexbits = True
         else:
             trim = "Disabled"
-        self.print_indent("Trim Flexbits     : %s" % trim)
-        self.print_indent("Reserved D        : 0x%01x" % ((flags >> 3) & 0x01))
+        self._print_indent("Trim Flexbits     : %s" % trim)
+        self._print_indent("Reserved D        : 0x%01x" % ((flags >> 3) & 0x01))
         if flags & 0x04 != 0:
             rgb = "Not Swapped"
         else:
             rgb = "Swapped"
-        self.print_indent("RGB order         : %s" % rgb)
+        self._print_indent("RGB order         : %s" % rgb)
         if flags & 0x02 != 0:
             pre = "Premultiplied"
         else:
             pre = "Not Premultiplied"
-        self.print_indent("Alpha Plane       : %s" % pre)
+        self._print_indent("Alpha Plane       : %s" % pre)
         if flags & 0x01 != 0:
             alpha = "Present"
             self.alpha_present = True
         else:
             alpha = "Not Present"
-        self.print_indent("Alpha Plane       : %s" % alpha)
+        self._print_indent("Alpha Plane       : %s" % alpha)
         flags = ord(self.infile.read(1))
         color = (flags >> 4)
         bits = flags & 0x0f
@@ -165,7 +165,7 @@ class JXRCodestream(BaseCodestream):
             cmode = "RGBE"
         else:
             cmode = "Reserved (%d)" % color
-        self.print_indent("Color Format      : %s" % cmode)
+        self._print_indent("Color Format      : %s" % cmode)
         if bits == 0:
             bmode = "Min is Black"
         elif bits == 1:
@@ -192,23 +192,23 @@ class JXRCodestream(BaseCodestream):
             bmode = "Min is White"
         else:
             bmode = "Reserved (%d)" % bits
-        self.print_indent("Bit Depths        : %s" % bmode)
+        self._print_indent("Bit Depths        : %s" % bmode)
         if short:
             width = ordw(self.infile.read(2)) + 1
             height = ordw(self.infile.read(2)) + 1
         else:
             width = ordl(self.infile.read(4)) + 1
             height = ordl(self.infile.read(4)) + 1
-        self.print_indent("Image Width       : %d" % width)
-        self.print_indent("Image Height      : %d" % height)
+        self._print_indent("Image Width       : %d" % width)
+        self._print_indent("Image Height      : %d" % height)
         if tiles:
             t1 = ord(self.infile.read(1))
             t2 = ord(self.infile.read(1))
             t3 = ord(self.infile.read(1))
             tilew = ((t1 << 4) | ((t2 & 0xf0) >> 4)) + 1
             tileh = (((t2 & 0x0f) << 8) | t3) + 1
-            self.print_indent("Tiles Left-Right  : %d" % tilew)
-            self.print_indent("Tiles Top-Bottom  : %d" % tileh)
+            self._print_indent("Tiles Left-Right  : %d" % tilew)
+            self._print_indent("Tiles Top-Bottom  : %d" % tileh)
         else:
             tilew = 1
             tileh = 1
@@ -220,20 +220,20 @@ class JXRCodestream(BaseCodestream):
                 tw = ord(self.infile.read(1))
             else:
                 tw = ordw(self.infile.read(2))
-            self.print_indent("Width of Tile  %d : %d MBs" % (x, tw))
+            self._print_indent("Width of Tile  %d : %d MBs" % (x, tw))
             totw -= tw << 4
         if tiles:
-            self.print_indent("Width of Tile  %d : %d MBs (computed)" % (tilew - 1, (totw + 15) >> 4))
+            self._print_indent("Width of Tile  %d : %d MBs (computed)" % (tilew - 1, (totw + 15) >> 4))
         toth = height
         for y in range(0, tileh - 1):
             if short:
                 th = ord(self.infile.read(1))
             else:
                 th = ord(self.infile.read(2))
-            self.print_indent("Height of Tile %d : %d MBs" % (y, th))
+            self._print_indent("Height of Tile %d : %d MBs" % (y, th))
             toth -= th << 4
         if tiles:
-            self.print_indent("Height of Tile %d : %d MBs (computed)" % (tileh - 1, (toth + 15) >> 4))
+            self._print_indent("Height of Tile %d : %d MBs (computed)" % (tileh - 1, (toth + 15) >> 4))
         if windowing:
             t1 = ord(self.infile.read(1))
             t2 = ord(self.infile.read(1))
@@ -242,14 +242,14 @@ class JXRCodestream(BaseCodestream):
             left = ((t1 & 0x03) << 4) | ((t2 & 0xf0) >> 4)
             bot = ((t2 & 0x0f) << 2) | ((t3 & 0xc0) >> 6)
             right = t3 & 0x3f
-            self.print_indent("Top    Border     : %d" % top)
-            self.print_indent("Left   Border     : %d" % left)
-            self.print_indent("Bottom Border     : %d" % bot)
-            self.print_indent("Right  Border     : %d" % right)
-        self.indent -= 1
+            self._print_indent("Top    Border     : %d" % top)
+            self._print_indent("Left   Border     : %d" % left)
+            self._print_indent("Bottom Border     : %d" % bot)
+            self._print_indent("Right  Border     : %d" % right)
+        self._indent -= 1
 
     def parse_quantizer(self, comps, band):
-        self.indent += 1
+        self._indent += 1
         if comps != 1:
             mode = self.get_bits(2)
             if mode == 0:
@@ -260,29 +260,29 @@ class JXRCodestream(BaseCodestream):
                 qmod = "Independent"
             else:  # elif mode == 3:
                 qmod = "Reserved"
-            self.print_indent("Quantizer %s Mode      : %s" % (band, qmod))
+            self._print_indent("Quantizer %s Mode      : %s" % (band, qmod))
         else:
             mode = 0
         if mode == 0:
             qp = self.get_bits(8)
-            self.print_indent("Quantizer %s QP        : %s" % (band, qp))
+            self._print_indent("Quantizer %s QP        : %s" % (band, qp))
         elif mode == 1:
             qp = self.get_bits(8)
-            self.print_indent("Quantizer %s QP Luma   : %s" % (band, qp))
+            self._print_indent("Quantizer %s QP Luma   : %s" % (band, qp))
             qp = self.get_bits(8)
-            self.print_indent("Quantizer %s QP Chroma : %s" % (band, qp))
+            self._print_indent("Quantizer %s QP Chroma : %s" % (band, qp))
         elif mode == 2:
             for i in range(0, comps):
                 qp = self.get_bits(8)
-                self.print_indent("Quantizer %s QP %2d     : %s" % (band, i, qp))
-        self.indent -= 1
+                self._print_indent("Quantizer %s QP %2d     : %s" % (band, i, qp))
+        self._indent -= 1
 
     def parse_image_plane_header(self, alpha):
         if alpha:
-            self.print_indent("Image Plane Header Contents (for Alpha Plane):")
+            self._print_indent("Image Plane Header Contents (for Alpha Plane):")
         else:
-            self.print_indent("Image Plane Header Contents:")
-        self.indent += 1
+            self._print_indent("Image Plane Header Contents:")
+        self._indent += 1
         flags = ord(self.infile.read(1))
         cfmt = (flags & 0xe0) >> 5
         if cfmt == 0:
@@ -309,12 +309,12 @@ class JXRCodestream(BaseCodestream):
         else:  # elif cfmt == 7:
             cformat = "Reserved (7)"
             comps = 0
-        self.print_indent("Internal Color Fmt: %s" % cformat)
+        self._print_indent("Internal Color Fmt: %s" % cformat)
         if flags & 0x10 != 0:
             scaled = "Enabled"
         else:
             scaled = "Disabled"
-        self.print_indent("Output Scaling    : %s" % scaled)
+        self._print_indent("Output Scaling    : %s" % scaled)
         bands = flags & 0x0f
         self.num_bands = bands
         if bands == 0:
@@ -332,61 +332,61 @@ class JXRCodestream(BaseCodestream):
         else:
             bd = "Reserved (%d)" % bands
             self.num_bands = 0
-        self.print_indent("Included Bands    : %s" % bd)
+        self._print_indent("Included Bands    : %s" % bd)
         if cfmt == 1 or cfmt == 2 or cfmt == 3:
             flags = ord(self.infile.read(1))
-            self.print_indent("Chroma Centering X: %d" % (flags >> 4))
-            self.print_indent("Chroma Centering Y: %d" % (flags & 0x0f))
+            self._print_indent("Chroma Centering X: %d" % (flags >> 4))
+            self._print_indent("Chroma Centering Y: %d" % (flags & 0x0f))
         elif cfmt == 6:
             comps = ord(self.infile.read(1))
             if (comps >> 4) == 15:
                 comps = ((comps & 0x0f) | (ord(self.infile.read(1)))) + 16
             else:
-                self.print_indent("Reserved H        : %d" % (comps & 0x0f))
+                self._print_indent("Reserved H        : %d" % (comps & 0x0f))
                 comps = ((comps >> 4) + 1)
-        self.print_indent("Components        : %d" % comps)
+        self._print_indent("Components        : %d" % comps)
         self.num_components = comps
         if self.output_bitdepth == 2 or self.output_bitdepth == 3 or self.output_bitdepth == 6:
             flags = ord(self.infile.read(1))
-            self.print_indent("Output Upshift    : %d" % flags)
+            self._print_indent("Output Upshift    : %d" % flags)
         elif self.output_bitdepth == 7:
             flags = ord(self.infile.read(1))
-            self.print_indent("Mantissa Length   : %d" % flags)
+            self._print_indent("Mantissa Length   : %d" % flags)
             flags = ord(self.infile.read(1))
-            self.print_indent("Exponent Bias     : %d" % flags)
+            self._print_indent("Exponent Bias     : %d" % flags)
         dcuniform = self.get_bits(1)
         if dcuniform == 1:
             uni = "Uniform"
         else:
             uni = "Variable"
             self.dc_variable = True
-        self.print_indent("DC Quantization   : %s" % uni)
+        self._print_indent("DC Quantization   : %s" % uni)
         if dcuniform:
             self.parse_quantizer(comps, "DC    ")
         if bands != 3:
-            self.print_indent("Reserved I        : %d" % self.get_bits(1))
+            self._print_indent("Reserved I        : %d" % self.get_bits(1))
             lpuniform = self.get_bits(1)
             if lpuniform == 1:
                 uni = "Uniform"
             else:
                 uni = "Variable"
                 self.lp_variable = True
-            self.print_indent("LP Quantization   : %s" % uni)
+            self._print_indent("LP Quantization   : %s" % uni)
             if lpuniform:
                 self.parse_quantizer(comps, "LP    ")
             if bands != 2:
-                self.print_indent("Reserved J        : %d" % self.get_bits(1))
+                self._print_indent("Reserved J        : %d" % self.get_bits(1))
                 hpuniform = self.get_bits(1)
                 if hpuniform == 1:
                     uni = "Uniform"
                 else:
                     uni = "Variable"
                     self.hp_variable = True
-                self.print_indent("HP Quantization   : %s" % uni)
+                self._print_indent("HP Quantization   : %s" % uni)
                 if hpuniform:
                     self.parse_quantizer(comps, "HP    ")
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def vlw_esc(self):
         first = ord(self.infile.read(1))
@@ -401,30 +401,30 @@ class JXRCodestream(BaseCodestream):
             return 0
 
     def parse_table_tiles(self):
-        self.print_indent("Index Table Tiles Contents:")
-        self.indent += 1
+        self._print_indent("Index Table Tiles Contents:")
+        self._indent += 1
         if self.frequency_mode:
             entries = self.num_bands * self.tiles_wide * self.tiles_high
         else:
             entries = self.tiles_wide * self.tiles_high
         startcode = ordw(self.infile.read(2))
-        self.print_indent("Start Code        : 0x%04lx" % startcode)
-        self.print_indent("Number of Entries : %d" % entries)
+        self._print_indent("Start Code        : 0x%04lx" % startcode)
+        self._print_indent("Number of Entries : %d" % entries)
         self.tile_offsets = []
         for i in range(0, entries):
             offset = self.vlw_esc()
             self.tile_offsets.append(offset)
-            self.print_indent("Tile %4d Offset: 0x%08lx" % (i, offset))
+            self._print_indent("Tile %4d Offset: 0x%08lx" % (i, offset))
 
     def tile_header_DC(self, alpha):
         if alpha:
             plane = "DC    (alpha)"
             comps = 1
-            self.print_indent("Tile Header DC (alpha)")
+            self._print_indent("Tile Header DC (alpha)")
         else:
             plane = "DC           "
             comps = self.num_components
-            self.print_indent("Tile Header DC")
+            self._print_indent("Tile Header DC")
         if self.dc_variable:
             self.parse_quantizer(comps, plane)
 
@@ -432,21 +432,21 @@ class JXRCodestream(BaseCodestream):
         if alpha:
             plane = "LP %2d (alpha)"
             comps = 1
-            self.print_indent("Tile Header LP (alpha)")
+            self._print_indent("Tile Header LP (alpha)")
         else:
             plane = "LP %2d        "
             comps = self.num_components
-            self.print_indent("Tile Header LP")
+            self._print_indent("Tile Header LP")
         if self.lp_variable:
             quant = self.get_bits(1)
             if quant == 0:
                 var = "Enabled"
             else:
                 var = "Disabled"
-            self.print_indent("Variable LP Quant     : %s" % var)
+            self._print_indent("Variable LP Quant     : %s" % var)
             if quant == 0:
                 numqp = self.get_bits(4) + 1
-                self.print_indent("Number of Quantizers  : %d" % numqp)
+                self._print_indent("Number of Quantizers  : %d" % numqp)
                 for i in range(0, numqp):
                     self.parse_quantizer(comps, plane % i)
 
@@ -454,76 +454,76 @@ class JXRCodestream(BaseCodestream):
         if alpha:
             plane = "HP %2d (alpha)"
             comps = 1
-            self.print_indent("Tile Header HP (alpha)")
+            self._print_indent("Tile Header HP (alpha)")
         else:
             plane = "HP %2d        "
             comps = self.num_components
-            self.print_indent("Tile Header HP")
+            self._print_indent("Tile Header HP")
         if self.hp_variable:
             quant = self.get_bits(1)
             if quant == 0:
                 var = "Enabled"
             else:
                 var = "Disabled"
-            self.print_indent("Variable HP Quant     : %s" % var)
+            self._print_indent("Variable HP Quant     : %s" % var)
             if quant == 0:
                 numqp = self.get_bits(4) + 1
-                self.print_indent("Number of Quantizers  : %d" % numqp)
+                self._print_indent("Number of Quantizers  : %d" % numqp)
                 for i in range(0, numqp):
                     self.parse_quantizer(comps, plane % i)
 
     def tile_DC(self, tile):
-        self.print_indent("Tile %d (DC)          :" % tile)
-        self.indent += 1
+        self._print_indent("Tile %d (DC)          :" % tile)
+        self._indent += 1
         startcode = ordl(self.infile.read(4))
-        self.print_indent("Start code            : 0x%08lx" % startcode)
+        self._print_indent("Start code            : 0x%08lx" % startcode)
         if self.num_bands > 1:
             self.tile_header_DC(False)
             if self.alpha_present:
                 self.tile_header_DC(True)
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def tile_LP(self, tile):
-        self.print_indent("Tile %d (LP)          :" % tile)
-        self.indent += 1
+        self._print_indent("Tile %d (LP)          :" % tile)
+        self._indent += 1
         startcode = ordl(self.infile.read(4))
-        self.print_indent("Start code            : 0x%08lx" % startcode)
+        self._print_indent("Start code            : 0x%08lx" % startcode)
         self.tile_header_LP(False)
         if self.alpha_present:
             self.tile_header_LP(True)
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def tile_HP(self, tile):
-        self.print_indent("Tile %d (HP)          :" % tile)
-        self.indent += 1
+        self._print_indent("Tile %d (HP)          :" % tile)
+        self._indent += 1
         startcode = ordl(self.infile.read(4))
-        self.print_indent("Start code            : 0x%08lx" % startcode)
+        self._print_indent("Start code            : 0x%08lx" % startcode)
         if self.num_bands > 2:
             self.tile_header_HP(False)
             if self.alpha_present:
                 self.tile_header_HP(True)
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def tile_FlexBits(self, tile):
-        self.print_indent("Tile %d (FlexBits)    :" % tile)
-        self.indent += 1
+        self._print_indent("Tile %d (FlexBits)    :" % tile)
+        self._indent += 1
         startcode = ordl(self.infile.read(4))
-        self.print_indent("Start code            : 0x%08lx" % startcode)
+        self._print_indent("Start code            : 0x%08lx" % startcode)
         if self.trim_flexbits:
-            self.print_indent("Trim Flexbits         : %d" % self.get_bits(4))
+            self._print_indent("Trim Flexbits         : %d" % self.get_bits(4))
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def tile_Spatial(self, tile):
-        self.print_indent("Tile %d (spatial mode):" % tile)
-        self.indent += 1
+        self._print_indent("Tile %d (spatial mode):" % tile)
+        self._indent += 1
         startcode = ordl(self.infile.read(4))
-        self.print_indent("Start code            : 0x%08lx" % startcode)
+        self._print_indent("Start code            : 0x%08lx" % startcode)
         if self.trim_flexbits:
-            self.print_indent("Trim Flexbits         : %d" % self.get_bits(4))
+            self._print_indent("Trim Flexbits         : %d" % self.get_bits(4))
         self.tile_header_DC(False)
         if self.num_bands > 1:
             self.tile_header_LP(False)
@@ -536,10 +536,10 @@ class JXRCodestream(BaseCodestream):
             if self.num_bands > 2:
                 self.tile_header_HP(True)
         self.align_to_byte()
-        self.indent -= 1
+        self._indent -= 1
 
     def parse_profile_info(self):
-        self.print_indent("Profile Information")
+        self._print_indent("Profile Information")
         while True:
             profile = self.get_bits(8)
             level = self.get_bits(8)
@@ -553,14 +553,14 @@ class JXRCodestream(BaseCodestream):
                 prof = "Advanced"
             else:
                 prof = "Unknown"
-            self.print_indent("Profile               : %s (%d)" % (prof, profile))
-            self.print_indent("Level                 : 0x%02x" % level)
-            self.print_indent("Reserved L            : 0x%04lx" % self.get_bits(15))
+            self._print_indent("Profile               : %s (%d)" % (prof, profile))
+            self._print_indent("Level                 : 0x%02x" % level)
+            self._print_indent("Reserved L            : 0x%04lx" % self.get_bits(15))
             if self.get_bits(1) == 1:
                 break
 
     def parse(self):
-        self.indent += 1
+        self._indent += 1
         self.parse_image_header()
         print("")
         self.print_position()
@@ -616,7 +616,7 @@ class JXRCodestream(BaseCodestream):
 class JXRFile:
     def __init__(self, file, endian=0):
         self.infile = file
-        self.indent = 0
+        self._indent = 0
         self.offset = 0
         self.endian = endian
         self.coffset = NotImplemented
@@ -642,11 +642,8 @@ class JXRFile:
         else:
             return ordq(self.infile.read(8))
 
-    def print_hex(self, buf):
-        print_hex(buf, self.indent)
-
-    def print_indent(self, buf, nl=1):
-        print_indent(buf, self.indent, nl)
+    def _print_indent(self, buf, nl=1):
+        print_indent(buf, self._indent, nl)
 
     def print_position(self):
         print "0x%08lx:" % self.infile.tell()
@@ -826,7 +823,7 @@ class JXRFile:
             rot += "Flip Horizontal "
         if values[0] & 4 != 0:
             rot += "Rotate Clockwise "
-        self.print_indent("Orientation       : %s" % rot)
+        self._print_indent("Orientation       : %s" % rot)
 
     def print_colorspace(self, values):
         if values[0] == 1:
@@ -835,7 +832,7 @@ class JXRFile:
             cspace = "sRGB not preferred"
         else:
             cspace = "Reserved (%d)" % values[0]
-        self.print_indent("Colorspace        : %s" % cspace)
+        self._print_indent("Colorspace        : %s" % cspace)
 
     def print_imagetype(self, values):
         itype = ""
@@ -845,7 +842,7 @@ class JXRFile:
             itype += "Preview "
         if values[0] & 2:
             itype += "Page "
-        self.print_indent("Image Type        : %s" % itype)
+        self._print_indent("Image Type        : %s" % itype)
 
     def print_colorinfo(self, values):
         if values[0] == 1:
@@ -907,11 +904,11 @@ class JXRFile:
             crange = "Full Range"
         else:
             crange = "Reduced Range"
-        self.print_indent("Primaries         : %s" % primaries)
-        self.print_indent("Transfer Function : %s" % transfer)
-        self.print_indent("Matrix            : %s" % matrix)
-        self.print_indent("Reserved K        : 0x%02x" % flags)
-        self.print_indent("Range             : %s" % crange)
+        self._print_indent("Primaries         : %s" % primaries)
+        self._print_indent("Transfer Function : %s" % transfer)
+        self._print_indent("Matrix            : %s" % matrix)
+        self._print_indent("Reserved K        : 0x%02x" % flags)
+        self._print_indent("Range             : %s" % crange)
 
     def print_profileinfo(self, values):
         idx = 0
@@ -929,9 +926,9 @@ class JXRFile:
                 prof = "Advanced"
             else:
                 prof = "Unknown"
-            self.print_indent("Profile           : %s (%d)" % (prof, profile))
-            self.print_indent("Level             : 0x%02x" % level)
-            self.print_indent("Reserved L        : 0x%04lx" % (flags >> 1))
+            self._print_indent("Profile           : %s (%d)" % (prof, profile))
+            self._print_indent("Level             : 0x%02x" % level)
+            self._print_indent("Reserved L        : 0x%04lx" % (flags >> 1))
             if flags & 1:
                 break
             idx += 3
@@ -945,7 +942,7 @@ class JXRFile:
         self.infile.seek(current)
 
     def print_componentsconfig(self, buf):
-        self.print_indent("Components Config :")
+        self._print_indent("Components Config :")
         px = ""
         for i in range(0, len(buf)):
             c = ord(buf[i])
@@ -965,7 +962,7 @@ class JXRFile:
                 px += "B "
             else:
                 px += "reserved (%d) " % c
-            self.print_indent("Pixel %2d Config   : %s" % (i + 1, px))
+            self._print_indent("Pixel %2d Config   : %s" % (i + 1, px))
 
     def print_usercomment(self, buf):
         ctype = ordq(buf[0:8])
@@ -981,7 +978,7 @@ class JXRFile:
         else:
             comment = "???"
             coding = "unknown"
-        self.print_indent("User Comment      : %s (%s)" % (comment, coding))
+        self._print_indent("User Comment      : %s (%s)" % (comment, coding))
 
     def parse_exposureprog(self, ep):
         if ep == 0:
@@ -1004,12 +1001,13 @@ class JXRFile:
             prog = "Landscape"
         else:
             prog = "Reserved (%d)" % ep
-        self.print_indent("Exposure Program  : %s" % prog)
+        self._print_indent("Exposure Program  : %s" % prog)
 
     def parse_ifd_entry(self):
         tag = self.readshort()
         type = self.readshort()
         count = self.readlong()
+        buf = None
         values = []
         content = ""
         if type == 1 or type == 6:
@@ -1168,116 +1166,116 @@ class JXRFile:
             for i in range(0, 4):
                 content += "0x%02x " % ord(self.infile.read(1))
         if count <= 16:
-            self.print_indent("0x%04x(%8s[%2d]): %s" % (tag, typename, count, content))
+            self._print_indent("0x%04x(%8s[%2d]): %s" % (tag, typename, count, content))
         else:
-            self.print_indent("0x%04x(%8s[%2d]): ..." % (tag, typename, count))
-        self.indent += 1
+            self._print_indent("0x%04x(%8s[%2d]): ..." % (tag, typename, count))
+        self._indent += 1
         if tag == 0xbc01:
-            self.print_indent("Pixel Format      : %s" % self.pxFormatToString(values))
+            self._print_indent("Pixel Format      : %s" % self.pxFormatToString(values))
         elif tag == 0xbc80:
-            self.print_indent("Image Width       : %d" % values[0])
+            self._print_indent("Image Width       : %d" % values[0])
         elif tag == 0xbc81:
-            self.print_indent("Image Height      : %d" % values[0])
+            self._print_indent("Image Height      : %d" % values[0])
         elif tag == 0xbc82:
-            self.print_indent("Width Resolution  : %g" % values[0])
+            self._print_indent("Width Resolution  : %g" % values[0])
         elif tag == 0xbc83:
-            self.print_indent("Height Resolution : %g" % values[0])
+            self._print_indent("Height Resolution : %g" % values[0])
         elif tag == 0xbcc0:
-            self.print_indent("Image Offset      : 0x%08lx" % values[0])
+            self._print_indent("Image Offset      : 0x%08lx" % values[0])
             self.coffset = values[0]
         elif tag == 0xbcc1:
-            self.print_indent("Image Bytecount   : 0x%08lx" % values[0])
+            self._print_indent("Image Bytecount   : 0x%08lx" % values[0])
             self.csize = values[0]
         elif tag == 0x010d:
-            self.print_indent("Document Name     : %s" % values[0])
+            self._print_indent("Document Name     : %s" % values[0])
         elif tag == 0x010e:
-            self.print_indent("Image Description : %s" % values[0])
+            self._print_indent("Image Description : %s" % values[0])
         elif tag == 0x010f:
-            self.print_indent("Equipment Make    : %s" % values[0])
+            self._print_indent("Equipment Make    : %s" % values[0])
         elif tag == 0x0110:
-            self.print_indent("Equipment Model   : %s" % values[0])
+            self._print_indent("Equipment Model   : %s" % values[0])
         elif tag == 0x011d:
-            self.print_indent("Page Name         : %s" % values[0])
+            self._print_indent("Page Name         : %s" % values[0])
         elif tag == 0x0129:
-            self.print_indent("Page Number       : %d-%d" % (values[0], values[1]))
+            self._print_indent("Page Number       : %d-%d" % (values[0], values[1]))
         elif tag == 0x0131:
-            self.print_indent("Software Version  : %s" % values[0])
+            self._print_indent("Software Version  : %s" % values[0])
         elif tag == 0x0132:
-            self.print_indent("Date and Time     : %s" % values[0])
+            self._print_indent("Date and Time     : %s" % values[0])
         elif tag == 0x013b:
-            self.print_indent("Artist Name       : %s" % values[0])
+            self._print_indent("Artist Name       : %s" % values[0])
         elif tag == 0x013c:
-            self.print_indent("Host Computer     : %s" % values[0])
+            self._print_indent("Host Computer     : %s" % values[0])
         elif tag == 0x8222:
-            self.print_exposureprog(values[0])
+            self.print_exposureprog(values[0])  # TODO: Unknown method
         elif tag == 0x8298:
-            self.print_indent("Copyright Notice  : %s" % values[0])
+            self._print_indent("Copyright Notice  : %s" % values[0])
         elif tag == 0x829a:
-            self.print_indent("Exposure Time     : %s" % content)
+            self._print_indent("Exposure Time     : %s" % content)
         elif tag == 0x829d:
-            self.print_indent("F-Stops           : %s" % content)
+            self._print_indent("F-Stops           : %s" % content)
         elif tag == 0x8824:
-            self.print_indent("Spectral Sens.    : %s" % values[0])
+            self._print_indent("Spectral Sens.    : %s" % values[0])
         elif tag == 0x8827:
-            self.print_indent("ISO Speed Rating  : %d" % values[0])
+            self._print_indent("ISO Speed Rating  : %d" % values[0])
         elif tag == 0x9000:
-            self.print_indent("EXIF Version      : %s" % content)
+            self._print_indent("EXIF Version      : %s" % content)
         elif tag == 0x9003:
-            self.print_indent("Date & Time (Org) : %s" % values[0])
+            self._print_indent("Date & Time (Org) : %s" % values[0])
         elif tag == 0x9004:
-            self.print_indent("Date & Time (Dgt) : %s" % values[0])
+            self._print_indent("Date & Time (Dgt) : %s" % values[0])
         elif tag == 0x9101:
             self.print_componentsconfig(buf)
         elif tag == 0x9102:
-            self.print_indent("Compressed BPP    : %s" % content)
+            self._print_indent("Compressed BPP    : %s" % content)
         elif tag == 0x9201:
-            self.print_indent("Shutter Speed     : %s" % content)
+            self._print_indent("Shutter Speed     : %s" % content)
         elif tag == 0x9202:
-            self.print_indent("Aperture          : %s" % content)
+            self._print_indent("Aperture          : %s" % content)
         elif tag == 0x9203:
-            self.print_indent("Brightness        : %s" % content)
+            self._print_indent("Brightness        : %s" % content)
         elif tag == 0x9204:
-            self.print_indent("Exposure Bias     : %s" % content)
+            self._print_indent("Exposure Bias     : %s" % content)
         elif tag == 0x9205:
-            self.print_indent("Max. Aperture     : %s" % content)
+            self._print_indent("Max. Aperture     : %s" % content)
         elif tag == 0x9206:
-            self.print_indent("Subject Distance  : %s" % content)
+            self._print_indent("Subject Distance  : %s" % content)
         elif tag == 0x9290:
-            self.print_indent("Sub-Seconds       : %s" % values[0])
+            self._print_indent("Sub-Seconds       : %s" % values[0])
         elif tag == 0x9291:
-            self.print_indent("Sub-Seconds (Org) : %s" % values[0])
+            self._print_indent("Sub-Seconds (Org) : %s" % values[0])
         elif tag == 0x9292:
-            self.print_indent("Sub-Seconds (Dgt) : %s" % values[0])
+            self._print_indent("Sub-Seconds (Dgt) : %s" % values[0])
         elif tag == 0x927c:
-            self.print_indent("Marker Note       : %s" % content)
+            self._print_indent("Marker Note       : %s" % content)
         elif tag == 0x9286:
             self.print_usercomment(buf)
         elif tag == 0xa000:
-            self.print_indent("FlashPix Version  : %s" % content)
+            self._print_indent("FlashPix Version  : %s" % content)
         elif tag == 0xa001:
             self.print_colorspace(values)
         elif tag == 0xa002:
-            self.print_indent("PixelXDimension   : %s" % values[0])
+            self._print_indent("PixelXDimension   : %s" % values[0])
         elif tag == 0xa003:
-            self.print_indent("PixelYDimension   : %s" % values[0])
+            self._print_indent("PixelYDimension   : %s" % values[0])
         elif tag == 0xa004:
-            self.print_indent("Sound File        : %s" % values[0])
+            self._print_indent("Sound File        : %s" % values[0])
         elif tag == 0xa20b:
-            self.print_indent("Flash Energy      : %s" % content)
+            self._print_indent("Flash Energy      : %s" % content)
         elif tag == 0xa20e:
-            self.print_indent("Focal Plane X Res : %s" % content)
+            self._print_indent("Focal Plane X Res : %s" % content)
         elif tag == 0xa20f:
-            self.print_indent("Focal Plane Y Res : %s" % content)
+            self._print_indent("Focal Plane Y Res : %s" % content)
         elif tag == 0xa214:
-            self.print_indent("Subject Location  : %d,%d" % (values[0], values[1]))
+            self._print_indent("Subject Location  : %d,%d" % (values[0], values[1]))
         elif tag == 0xa215:
-            self.print_indent("Exposure Index    : %s" % content)
+            self._print_indent("Exposure Index    : %s" % content)
         elif tag == 0xa404:
-            self.print_indent("Digital Zoom Ratio: %s" % content)
+            self._print_indent("Digital Zoom Ratio: %s" % content)
         elif tag == 0xa405:
-            self.print_indent("Focal Len for 35mm: %d" % values[0])
+            self._print_indent("Focal Len for 35mm: %d" % values[0])
         elif tag == 0xa420:
-            self.print_indent("Unique ID         : %s" % values[0])
+            self._print_indent("Unique ID         : %s" % values[0])
         elif tag == 0xbc02:
             self.print_rotation(values)
         elif tag == 0xbc04:
@@ -1287,31 +1285,31 @@ class JXRFile:
         elif tag == 0xbc06:
             self.print_profileinfo(values)
         elif tag == 0xbcc2:
-            self.print_indent("Alpha Offset      : 0x%08lx" % values[0])
+            self._print_indent("Alpha Offset      : 0x%08lx" % values[0])
             self.aoffset = values[0]
         elif tag == 0xbcc3:
-            self.print_indent("Alpha Bytecount   : 0x%08lx" % values[0])
+            self._print_indent("Alpha Bytecount   : 0x%08lx" % values[0])
             self.asize = values[0]
         elif tag == 0xbcc4:
-            self.print_indent("Image Bands       : %d" % values[0])
+            self._print_indent("Image Bands       : %d" % values[0])
         elif tag == 0xbcc5:
-            self.print_indent("Alpha Presence    : %d" % values[0])
+            self._print_indent("Alpha Presence    : %d" % values[0])
         elif tag == 0x02bc:
-            self.print_indent("Adobe XMP data:")
-            self.indent += 1
+            self._print_indent("Adobe XMP data:")
+            self._indent += 1
             string = ""
             for i in values:
                 string += chr(i)
             print(string)
         elif tag == 0x8769:
-            self.print_indent("EXIF 2.2 data:")
+            self._print_indent("EXIF 2.2 data:")
             self.parse_exif(values[0])
         elif tag == 0x8773:
-            self.print_indent("ICC Profile:")
-            parse_icc(self.indent + 1, buf)
+            self._print_indent("ICC Profile:")
+            parse_icc(self._indent + 1, buf)
         elif tag == 0xea1c:
-            self.print_indent("Padding Data")
-        self.indent -= 1
+            self._print_indent("Padding Data")
+        self._indent -= 1
 
     def parse(self):
         type = self.infile.read(2)
@@ -1319,26 +1317,26 @@ class JXRFile:
         if id != 0x01bc:
             raise JP2Error("not a valid JXR file, identifier is invalid")
         ifdoffset = self.readlong()
-        self.print_indent("IFD at offset:         0x%04lx" % ifdoffset)
+        self._print_indent("IFD at offset:         0x%04lx" % ifdoffset)
         self.infile.seek(ifdoffset)
         count = self.readshort()
-        self.print_indent("Number of IFD entries: %d" % count)
-        self.indent += 1
+        self._print_indent("Number of IFD entries: %d" % count)
+        self._indent += 1
         for i in range(0, count):
             self.parse_ifd_entry()
         if self.coffset != NotImplemented:
             self.infile.seek(self.coffset)
-            jxrc = JXRCodestream(file, self.indent)
+            jxrc = JXRCodestream(file, self._indent)
             print("")
             self.print_position()
-            self.print_indent("Codestream Contents:")
+            self._print_indent("Codestream Contents:")
             jxrc.parse()
         if self.aoffset != NotImplemented and self.aoffset != 0:
             self.infile.seek(self.aoffset)
-            jxrc = JXRCodestream(file, self.indent)
+            jxrc = JXRCodestream(file, self._indent)
             print("")
             self.print_position()
-            self.print_indent("Codestream Alpha Plane Contents:")
+            self._print_indent("Codestream Alpha Plane Contents:")
             jxrc.parse()
 
 

@@ -811,7 +811,7 @@ def parse_copt_box(box, buf):
 
 
 def parse_inst_box(box, buf):
-    box.print_indent("Instruct set box");
+    box.print_indent("Instruct set box")
     if len(buf) < 8:
         box.print_indent("invalid box")
         return
@@ -1702,7 +1702,7 @@ def parse_MTRX_box(box, buf):
     mtr = ""
     cnt = 0
     for i in range(9):
-        ntry = ordw(buf[ofs:ofs + 2]);
+        ntry = ordw(buf[ofs:ofs + 2])
         if ntry >= 32768:
             ntry = ntry - 65536
         ntry = ntry * fac

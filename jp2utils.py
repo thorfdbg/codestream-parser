@@ -72,8 +72,8 @@ class BaseCodestream(object):
         self._headers = []
         self._markerpos = 0
 
-    def _print_indent(self, buf, nl=1):
-        print_indent(buf, self._indent, nl)
+    def _print_indent(self, buf):
+        print_indent(buf, self._indent)
 
     def _new_marker(self, name, description):
         self._print_indent("%-8s: New marker: %s (%s)" % \
@@ -102,32 +102,25 @@ class BaseCodestream(object):
 def print_hex(buf, indent=0, sec_indent=-1):
     if sec_indent == -1:
         sec_indent = indent
-    buff = ""
+    line = ""
+    buff = "  "
     for i in range(len(buf)):
         if i % 16 == 0:
             if i != 0:
-                print "  ", buff
+                line += buff
+                print(line)
                 indent = sec_indent
-                buff = ""
-            for j in range(indent):
-                print " ",
-        if 32 <= ord(buf[i]) < 127:
-            buff += buf[i]
-        else:
-            buff += "."
-        print "%02x" % (ord(buf[i])),
-    for j in range((16 - (len(buf) % 16)) % 16):
-        print "  ",
-    print "  ", buff
+                line = ""
+                buff = "  "
+            line += " " * indent
+        buff += buf[i] if 32 <= ord(buf[i]) < 127 else "."
+        line += "%02x " % (ord(buf[i]))
+    line += "   " * ((16 - (len(buf) % 16)) % 16) + buff
+    print(line)
 
 
-def print_indent(buf, indent=0, nl=1):
-    for i in range(indent):
-        print " ",
-    if nl:
-        print buf
-    else:
-        print buf,
+def print_indent(buf, indent=0):
+    print(" " * indent + buf)
 
 
 def ieee_float_to_float(data):

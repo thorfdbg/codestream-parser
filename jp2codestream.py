@@ -741,6 +741,7 @@ class JP2Codestream(BaseCodestream):
                     raise InvalidSizedMarker("TLM")
                 tileparts = (self.size - 4) / 6
         self.pos += 4
+        ttlm = ""
         for i in range(tileparts):
             if st == 0:
                 ttlm = "in order"
@@ -838,6 +839,7 @@ class JP2Codestream(BaseCodestream):
         imcc = ord(self.buffer[self.pos + 4])
         self.print_header("Reference index", str(imcc))
         self.pos += 5
+        qmcc = 0
         if zmcc == 0:
             ymcc = ordw(self.buffer[self.pos + 0:self.pos + 2])
             self.print_header("Last concatenation index", str(ymcc))
@@ -957,7 +959,7 @@ class JP2Codestream(BaseCodestream):
         elif type & 12 == 8:
             s = "32 bit IEEE float"
             l = 4
-        elif type & 12 == 12:
+        else:  # elif type & 12 == 12:
             s = "64 bit IEEE float"
             l = 8
         self.print_header("Data type", s)
@@ -1286,9 +1288,8 @@ if __name__ == "__main__":
 
     # Parse Files
     filename = sys.argv[1]
-    file = open(filename, "rb")
     jp2 = JP2Codestream()
     try:
-        jp2.stream_parse(file, 0)
+        jp2.stream_parse(open(filename, "rb"), 0)
     except JP2Error, e:
         print("***{}".format(str(e)))

@@ -454,9 +454,8 @@ if __name__ == "__main__":
 
     # Parse Files
     filename = sys.argv[1]
-    file = open(filename, "rb")
     jpg = create_jpg_codestream()
     try:
-        jpg.stream_parse(file, 0)
+        jpg.stream_parse(open(filename, "rb"), 0)
     except JP2Error, e:
         print("***{}".format(str(e)))
