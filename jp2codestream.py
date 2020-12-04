@@ -6,64 +6,39 @@ See LICENCE.txt for copyright and licensing conditions.
 
 import sys
 
-from jp2utils import print_indent, ordw, ordl, ordq, ieee_float_to_float, ieee_double_to_float,\
-    JP2Error, InvalidMarker, InvalidMarkerField, InvalidSizedMarker, RequiredMarkerMissing, UnexpectedEOC, MisplacedData
+from jp2utils import ordw, ordl, ordq, ieee_float_to_float, ieee_double_to_float,\
+    JP2Error, InvalidMarker, InvalidMarkerField, InvalidSizedMarker, RequiredMarkerMissing, UnexpectedEOC,\
+    MisplacedData, BaseCodestream
 
 
-class JP2Codestream:
+class JP2Codestream(BaseCodestream):
     """
     JP2 Codestream class.
     """
 
     def __init__(self, indent=0):
-        self.indent = indent
+        super(JP2Codestream, self).__init__(indent=indent)
         self.datacount = 0
         self.bytecount = 0
         self.offset = 0
-        self.headers = None
         self.buffer = None
         self.marker = None
         self.pos = 0
         self.size = None
         self.csiz = 0
 
-    def print_indent(self, buffer, nl=1):
-        print_indent(buffer, self.indent, nl)
-
     def print_header(self, header, content):
-        self.headers.append((header, content))
+        self._headers.append((header, content))
 
     def print_data(self, count):
         if count > 0:
             self.datacount = self.datacount + count
             self.bytecount = self.bytecount + count
-            self.print_indent("Data : %d bytes" % (count))
+            self._print_indent("Data : %d bytes" % (count))
             print
 
-    def new_marker(self, name, description):
-        self.print_indent("%-8s: New marker: %s (%s)" %
-                          (str(self.pos - 2 + self.offset), name, description))
-        print
-        self.indent += 1
-        self.headers = []
-
-    def end_marker(self):
-        self.flush_marker()
-        self.indent -= 1
-
-    def flush_marker(self):
-        if len(self.headers) > 0:
-            maxlen = 0
-            for header in self.headers:
-                maxlen = max(maxlen, len(header[0]))
-            for header in self.headers:
-                s = " " * (maxlen - len(header[0]))
-                self.print_indent("%s%s : %s" % (header[0], s, header[1]))
-            print("")
-            self.headers = []
-
-    def parse(self, buffer, startpos):
-        self.buffer = buffer
+    def parse(self, buf, startpos):
+        self.buffer = buf
         self.pos = 0
         self.datacount = 0
         self.offset = startpos
@@ -115,8 +90,8 @@ class JP2Codestream:
                 raise UnexpectedEOC()
 
             self.pos += 2
-            self.new_marker("SOD", "Start of data")
-            self.end_marker()
+            self._new_marker("SOD", "Start of data")
+            self._end_marker()
 
             self.parse_data()
 
@@ -125,9 +100,9 @@ class JP2Codestream:
 
         l = len(self.buffer)
         oh = l - self.datacount
-        self.print_indent("Size      : %d bytes" % (l))
-        self.print_indent("Data Size : %d bytes" % (self.datacount))
-        self.print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / l))
+        self._print_indent("Size      : %d bytes" % (l))
+        self._print_indent("Data Size : %d bytes" % (self.datacount))
+        self._print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / l))
 
     def load_marker(self, file, marker):
         mrk = ((ord(marker[0]) << 8) +
@@ -216,8 +191,8 @@ class JP2Codestream:
                 self.load_buffer(file)
 
             self.offset += len(self.buffer)
-            self.new_marker("SOD", "Start of data")
-            self.end_marker()
+            self._new_marker("SOD", "Start of data")
+            self._end_marker()
 
             self.stream_data(file)
 
@@ -225,9 +200,9 @@ class JP2Codestream:
             raise MisplacedData()
 
         oh = self.bytecount - self.datacount
-        self.print_indent("Size      : %d bytes" % (self.bytecount))
-        self.print_indent("Data Size : %d bytes" % (self.datacount))
-        self.print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / self.bytecount))
+        self._print_indent("Size      : %d bytes" % (self.bytecount))
+        self._print_indent("Data Size : %d bytes" % (self.datacount))
+        self._print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / self.bytecount))
 
     def stream_data(self, file):
         count = 0
@@ -249,9 +224,9 @@ class JP2Codestream:
                         self.offset += len(self.buffer)
                         count = 0
 
-    def parse_data(self, buffer=None):
-        if buffer:
-            self.buffer = buffer
+    def parse_data(self, buf=None):
+        if buf:
+            self.buffer = buf
             self.pos = 0
 
         while True:
@@ -335,11 +310,11 @@ class JP2Codestream:
         self.pos += 5 + precincts
 
     def read_SOC(self):
-        self.new_marker("SOC", "Start of codestream")
-        self.end_marker()
+        self._new_marker("SOC", "Start of codestream")
+        self._end_marker()
 
     def read_NSI(self):
-        self.new_marker("NSI", "Additional Dimension Image and Tile Size")
+        self._new_marker("NSI", "Additional Dimension Image and Tile Size")
         size = ordw(self.buffer[self.pos + 0:self.pos + 2])
         if size < 20 or size > 16403:
             raise InvalidSizedMarker("NSI")
@@ -356,10 +331,10 @@ class JP2Codestream:
         for i in range(size - 19):
             self.print_header("Z Sample Separation for component %d" % i, "%d" % ord(self.buffer[self.pos + 19 + i]))
         self.pos += size
-        self.end_marker()
+        self._end_marker()
 
     def read_SIZ(self):
-        self.new_marker("SIZ", "Image and tile size")
+        self._new_marker("SIZ", "Image and tile size")
         size = ordw(self.buffer[self.pos + 0:self.pos + 2])
         if size < 41:
             raise InvalidSizedMarker("SIZ")
@@ -453,12 +428,11 @@ class JP2Codestream:
             self.print_header("Component #%d Sample Separation" % (i),
                               "%dx%d" % (xrsiz, yrsiz))
 
-        self.end_marker()
-
+        self._end_marker()
         self.pos += size
 
     def read_SOT(self):
-        self.new_marker("SOT", "Start of tile-part")
+        self._new_marker("SOT", "Start of tile-part")
         if len(self.buffer) - self.pos < 10:
             raise InvalidSizedMarker("SOT")
         size = ordw(self.buffer[self.pos + 0:self.pos + 2])
@@ -473,27 +447,27 @@ class JP2Codestream:
         else:
             s = str(ord(self.buffer[self.pos + 9]))
         self.print_header("Tile-Parts", s)
-        self.end_marker()
+        self._end_marker()
         self.pos += 10
 
     def read_COD(self):
-        self.new_marker("COD", "Coding style default")
+        self._new_marker("COD", "Coding style default")
         if self.size < 3:
             raise InvalidSizedMarker("COD")
         cod = ord(self.buffer[self.pos + 2])
         self.print_header("Default Precincts of 2^15x2^15", "no" if cod & 0x01 else "yes")
         self.print_header("SOP Marker Segments", "yes" if cod & 0x02 else "no")
         self.print_header("EPH Marker Segments", "yes" if cod & 0x04 else "no")
-        self.print_header("Codeblock X offset", "1" if cod & 0x08 else "0");
-        self.print_header("Codeblock Y offset", "1" if cod & 0x10 else "0");
+        self.print_header("Codeblock X offset", "1" if cod & 0x08 else "0")
+        self.print_header("Codeblock Y offset", "1" if cod & 0x10 else "0")
         self.print_header("All Flags", "%08x" % (cod))
         self.pos += 3
         self.read_SGco()
         self.read_SPco(self.size - 12)
-        self.end_marker()
+        self._end_marker()
 
     def read_COC(self):
-        self.new_marker("COC", "Coding style component")
+        self._new_marker("COC", "Coding style component")
         if self.csiz <= 256 and self.size < 9 or \
                 self.csiz > 256 and self.size < 10:
             raise InvalidSizedMarker("COC")
@@ -529,10 +503,10 @@ class JP2Codestream:
         if self.csiz > 256:
             precincts -= 1
         self.read_SPco(precincts)
-        self.end_marker()
+        self._end_marker()
 
     def read_QCD(self):
-        self.new_marker("QCD", "Quantization default")
+        self._new_marker("QCD", "Quantization default")
         if self.size < 4:
             raise InvalidSizedMarker("QCD")
         sqcd = ord(self.buffer[self.pos + 2])
@@ -573,11 +547,11 @@ class JP2Codestream:
                 exponent = spqcd >> 3
             self.print_header("Exponent #%d" % (i), str(exponent))
             self.print_header("Delta    #%d" % (i), str(mantissa * pow(2.0, -exponent)))
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_QCC(self):
-        self.new_marker("QCC", "Quantization component")
+        self._new_marker("QCC", "Quantization component")
         if self.size < 4:
             raise InvalidSizedMarker("QCC")
         if self.csiz <= 256:
@@ -621,10 +595,10 @@ class JP2Codestream:
                 exponent = spqcd >> 3
             self.print_header("Exponent #%d" % (i), str(exponent))
             self.print_header("Delta    #%d" % (i), mantissa * pow(2.0, -exponent))
-        self.end_marker()
+        self._end_marker()
 
     def read_RGN(self):
-        self.new_marker("RGN", "Region-of-interest")
+        self._new_marker("RGN", "Region-of-interest")
         # Print Crgn
         if self.csiz <= 256:
             cmp = ord(self.buffer[self.pos + 2])
@@ -647,10 +621,10 @@ class JP2Codestream:
         self.print_header("Implicit ROI Shift",
                           str(ord(self.buffer[self.pos + 0])))
         self.pos += 1
-        self.end_marker()
+        self._end_marker()
 
     def read_POC(self):
-        self.new_marker("POC", "Progression order change")
+        self._new_marker("POC", "Progression order change")
         if self.size < 9:
             raise InvalidSizedMarker("POC")
         if self.csiz <= 256:
@@ -690,47 +664,47 @@ class JP2Codestream:
             po = self.progression_order(ord(self.buffer[self.pos]))
             self.print_header("Progression Order #%d" % (i), po)
             self.pos += 1
-        self.end_marker()
+        self._end_marker()
 
     def read_PPM(self):
-        self.new_marker("PPM", "Packed packet headers, main header")
+        self._new_marker("PPM", "Packed packet headers, main header")
         if self.size < 3:
             raise InvalidSizedMarker("PPM")
         self.print_header("Index Zppm", str(ord(self.buffer[self.pos + 2])))
         self.print_header("Marker Length Lppm", str(self.size))
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_PPT(self):
-        self.new_marker("PPT", "Packed packet headers, tile-part header")
+        self._new_marker("PPT", "Packed packet headers, tile-part header")
         if self.size < 3:
             raise InvalidSizedMarker("PPT")
         self.print_header("Index", str(ord(self.buffer[self.pos + 2])))
         self.print_header("Contents", "")
-        self.flush_marker()
+        self._flush_marker()
         restlen = self.size - 3
         self.pos += 3
-        cs = JP2Codestream(self.indent + 1)
+        cs = JP2Codestream(self._indent + 1)
         cs.parse_data(self.buffer[self.pos:self.pos + restlen])
         self.datacount = self.datacount + cs.datacount
-        self.end_marker()
+        self._end_marker()
         self.pos += restlen
 
     def read_SOP(self):
-        self.new_marker("SOP", "Start of packet")
+        self._new_marker("SOP", "Start of packet")
         if self.size != 4:
             raise InvalidSizedMarker("SOP")
         self.print_header("Sequence",
                           str(ordw(self.buffer[self.pos + 2:self.pos + 4])))
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_EPH(self):
-        self.new_marker("EPH", "End of packet header")
-        self.end_marker()
+        self._new_marker("EPH", "End of packet header")
+        self._end_marker()
 
     def read_TLM(self):
-        self.new_marker("TLM", "Tile-part length")
+        self._new_marker("TLM", "Tile-part length")
         if self.size < 4:
             raise InvalidSizedMarker("TLM")
         self.print_header("Index", str(ord(self.buffer[self.pos + 2])))
@@ -784,30 +758,30 @@ class JP2Codestream:
                 length = ordl(self.buffer[self.pos + 0:self.pos + 4])
                 self.pos += 4
             self.print_header("Length #%d" % (i), str(length))
-        self.end_marker()
+        self._end_marker()
 
     def read_PLM(self):
-        self.new_marker("PLM", "Packet length, main header")
+        self._new_marker("PLM", "Packet length, main header")
         if self.size < 3:
             raise InvalidSizedMarker("PLM")
         self.print_header("Index", str(ord(self.buffer[self.pos + 2])))
         self.pos += 3
         self.size -= 3
         self.print_header("Length", str(self.size))
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_PLT(self):
-        self.new_marker("PLT", "Packet length, tile-part header")
+        self._new_marker("PLT", "Packet length, tile-part header")
         if self.size < 3:
             raise InvalidSizedMarker("PLT")
         self.print_header("Index Zplt", str(ord(self.buffer[self.pos + 2])))
         self.print_header("Marker size Lplt", "%d bytes" % (self.size))
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_CRG(self):
-        self.new_marker("CRG", "Component registration")
+        self._new_marker("CRG", "Component registration")
         if self.size != self.csiz * 4 + 2:
             raise InvalidSizedMarker("CRG")
         self.pos += 2
@@ -816,10 +790,10 @@ class JP2Codestream:
             y = ordw(self.buffer[self.pos + 2:self.pos + 4])
             self.print_header("Offset #%d" % (i), "%dx%d" % (x, y))
             self.pos += 4
-        self.end_marker()
+        self._end_marker()
 
     def read_CBD(self):
-        self.new_marker("CBD", "Component bit depth definition")
+        self._new_marker("CBD", "Component bit depth definition")
         if self.size < 5:
             raise InvalidSizedMarker("CBD")
         nbcd = ordw(self.buffer[self.pos + 2:self.pos + 4])
@@ -839,10 +813,10 @@ class JP2Codestream:
                 self.print_header("Component %d sign" % i, "unsigned")
             self.print_header("Component %d Bit Depth" % i, str(1 + (ord(self.buffer[self.pos]) & 0x7f)))
             self.pos += 1
-        self.end_marker()
+        self._end_marker()
 
     def read_MCO(self):
-        self.new_marker("MCO", "Multiple component transform ordering")
+        self._new_marker("MCO", "Multiple component transform ordering")
         if self.size < 3:
             raise InvalidSizedMarker("MCO")
         nmco = ord(self.buffer[self.pos + 2])
@@ -853,10 +827,10 @@ class JP2Codestream:
         for i in range(nmco):
             self.print_header("MCC collection %d" % i, str(ord(self.buffer[self.pos])))
             self.pos += 1
-        self.end_marker()
+        self._end_marker()
 
     def read_MCC(self):
-        self.new_marker("MCC", "Multiple component collection")
+        self._new_marker("MCC", "Multiple component collection")
         if self.size < 5:
             raise InvalidSizedMarker("MCC")
         zmcc = ordw(self.buffer[self.pos + 2:self.pos + 4])
@@ -953,10 +927,10 @@ class JP2Codestream:
                     s = "in MCT marker %d" % ord(self.buffer[self.pos + 2])
                 self.print_header("Collection %d matrix" % i, s)
                 self.pos += 3
-        self.end_marker()
+        self._end_marker()
 
     def read_MCT(self):
-        self.new_marker("MCT", "Multiple component transformation")
+        self._new_marker("MCT", "Multiple component transformation")
         len = self.size - 6
         if len < 0:
             raise InvalidSizedMarker("MCT")
@@ -1019,10 +993,10 @@ class JP2Codestream:
                 s = str(ieee_double_to_float(dtl))
                 self.pos += 8
             self.print_header("Data entry %d" % i, s)
-        self.end_marker()
+        self._end_marker()
 
     def read_NLT(self):
-        self.new_marker("NLT", "Nonlinearity transformation")
+        self._new_marker("NLT", "Nonlinearity transformation")
         if self.size < 6:
             raise InvalidSizedMarker("NLT")
         cnlt = ordw(self.buffer[self.pos + 2:self.pos + 4])
@@ -1112,10 +1086,10 @@ class JP2Codestream:
                 else:
                     s = "ill-defined"
                 self.print_header("Data entry %d" % i, s)
-        self.end_marker()
+        self._end_marker()
 
     def read_COM(self):
-        self.new_marker("COM", "Comment")
+        self._new_marker("COM", "Comment")
         if self.size < 4:
             raise InvalidSizedMarker("COM")
         reg = ordw(self.buffer[self.pos + 2:self.pos + 4])
@@ -1130,15 +1104,15 @@ class JP2Codestream:
             self.print_header("Comment", self.buffer[self.pos + 4:self.pos + self.size])
         else:
             self.print_header("Comment", "...")
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_EOC(self):
-        self.new_marker("EOC", "End of codestream")
-        self.end_marker()
+        self._new_marker("EOC", "End of codestream")
+        self._end_marker()
 
     def read_CAP(self):
-        self.new_marker("CAP", "Extended Capabilities Marker")
+        self._new_marker("CAP", "Extended Capabilities Marker")
         pcap = ordl(self.buffer[self.pos + 2:self.pos + 6])
         offs = self.pos + 6
         for i in range(32):
@@ -1148,11 +1122,11 @@ class JP2Codestream:
                 self.print_header("Extended capabilities for part %d" % i,
                                   "0x%x" % (ordw(self.buffer[offs:offs + 2])))
                 offs += 2
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_CPF(self):
-        self.new_marker("CPF", "Corresponding Profile Marker")
+        self._new_marker("CPF", "Corresponding Profile Marker")
         offs = self.pos + 2
         pcan = self.size - 2
         if pcan < 0 or pcan & 1:
@@ -1167,7 +1141,7 @@ class JP2Codestream:
             self.print_header("Corresponding Profile", "to be found in the PRF marker")
         else:
             self.print_header("Corresponding Profile", "0x%x" % cpfnum)
-        self.end_marker()
+        self._end_marker()
         self.pos += self.size
 
     def read_unknown_marker(self):
@@ -1184,12 +1158,12 @@ class JP2Codestream:
             type = "invalid ISO/IEC 15444-xx"
         else:
             raise InvalidMarker("%02x" % (self.marker))
-        self.new_marker("0xff%02x" % (self.marker), "unknown %s" % (type))
-        self.end_marker()
+        self._new_marker("0xff%02x" % (self.marker), "unknown %s" % (type))
+        self._end_marker()
         if self.size is not None:
             if self.size < 2:
                 raise InvalidSizedMarker("unknown")
-            self.end_marker()
+            self._end_marker()
             self.pos += self.size
 
     def read_marker(self):

@@ -1941,7 +1941,7 @@ def parse_jxvi_box(box, buffer):
             else:
                 subs = "Invalid (%s)" % structure
             sampling = "%s@%sbpp" % (subs, bitdepth)
-    box.print_indent("Samping Structure : %s" % sampling)
+    box.print_indent("Sampling Structure : %s" % sampling)
     box.print_indent("Time code         : %02d:%02d:%02d:%02d" % (
         ord(buffer[10]), ord(buffer[11]), ord(buffer[12]), ord(buffer[13])))
 
@@ -2067,7 +2067,8 @@ def parse_jumd_box(box):
     box.print_indent("JUMBF Description box")
     buf = box.infile.read()
     typ = buf[0:16]
-    box.print_indent("TYPE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" %
+    box.print_indent("TYPE: %02x %02x %02x %02x %02x %02x %02x %02x "
+                     "%02x %02x %02x %02x %02x %02x %02x %02x" %
                      (ord(typ[0]), ord(typ[1]), ord(typ[2]), ord(typ[3]),
                       ord(typ[4]), ord(typ[5]), ord(typ[6]), ord(typ[7]),
                       ord(typ[8]), ord(typ[9]), ord(typ[10]), ord(typ[11]),
@@ -2094,7 +2095,10 @@ def parse_jumd_box(box):
     if testBit(toggles, 3):
         sig = buf[opt_start:opt_start + 32]
         box.print_indent(
-            "SIGNATURE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
+            "SIGNATURE: %02x %02x %02x %02x %02x %02x %02x %02x "
+            "%02x %02x %02x %02x %02x %02x %02x %02x "
+            "%02x %02x %02x %02x %02x %02x %02x %02x "
+            "%02x %02x %02x %02x %02x %02x %02x %02x" %
             (ord(sig[0]), ord(sig[1]), ord(sig[2]), ord(sig[3]),
              ord(sig[4]), ord(sig[5]), ord(sig[6]), ord(sig[7]),
              ord(sig[8]), ord(sig[9]), ord(sig[10]), ord(sig[11]),
@@ -2405,7 +2409,7 @@ if __name__ == "__main__":
             jp2 = JP2Codestream()
             jp2.stream_parse(file, 0)
         elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
-            jpg = JPGCodestream()
+            jpg = JPGCodestream(hook=superbox_hook)
             jpg.stream_parse(file, 0)
         elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
             jxs = JXSCodestream()

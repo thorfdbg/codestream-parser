@@ -8,14 +8,14 @@ import getopt
 import sys
 
 from jp2utils import print_indent, print_hex, lordl, lordw, lordq, ordw, ordl, ordq,\
-    ieee_float_to_float, ieee_double_to_float, JP2Error
+    ieee_float_to_float, ieee_double_to_float, JP2Error, BaseCodestream
 from icc import parse_icc
 
 
-class JXRCodestream:
+class JXRCodestream(BaseCodestream):
     def __init__(self, file, indent):
+        super(JXRCodestream, self).__init__(indent=indent)
         self.infile = file
-        self.indent = indent
         self.alpha_present = False
         self.index_table_present = False
         self.bitpos = 0
@@ -49,9 +49,6 @@ class JXRCodestream:
 
     def align_to_byte(self):
         self.bitpos = 0
-
-    def print_indent(self, buf, nl=1):
-        print_indent(buf, self.indent, nl)
 
     def print_position(self):
         print("%i:" % self.infile.tell())

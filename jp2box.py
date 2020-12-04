@@ -118,7 +118,7 @@ class JP2Box:
         return length, id
 
     def readbody(self):
-        # Read Box Content
+        """Read Box Content"""
         if self.bodysize > 0:
             buf = self.infile.read(self.bodysize)
         else:
@@ -126,7 +126,7 @@ class JP2Box:
         return buf
 
     def parse(self, hook):
-        "Parse a container box and call the hook for each sub-box."
+        """Parse a container box and call the hook for each sub-box."""
         while 1:
             # Read LBox (box length)
             header = self.parse_header()

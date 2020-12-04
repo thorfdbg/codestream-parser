@@ -11,85 +11,80 @@ from jp2box import *
 
 
 class BoxSegment:
-    def __init__(self,buffer,offset):
-        self.offset=offset
-        self.en=ordw(buffer[6:8])
-        self.seq=ordl(buffer[8:12])
-        self.lbox=ordl(buffer[12:16])
+    def __init__(self, buf, offset):
+        self.offset = offset
+        self.en = ordw(buf[6:8])
+        self.seq = ordl(buf[8:12])
+        self.lbox = ordl(buf[12:16])
         if self.lbox != 1 and self.lbox < 8:
             raise InvalidBoxSize()
-        self.type=buffer[16:20]
+        self.type = buf[16:20]
         if self.lbox == 1:
-            self.lbox=ordq(buffer[20:28])
-            self.buffer=buffer[28:]
-            self.body=self.lbox-4-4-8
+            self.lbox = ordq(buf[20:28])
+            self.buffer = buf[28:]
+            self.body = self.lbox - 4 - 4 - 8
         else:
-            self.buffer=buffer[20:]
-            self.body=self.lbox-4-4
+            self.buffer = buf[20:]
+            self.body = self.lbox - 4 - 4
 
-    def __lt__(self,other):
+    def __lt__(self, other):
         return self.seq < other.seq
 
 
 class BoxIndex:
-    def __init__(self,boxtype,en):
-        self.type=boxtype
-        self.en=en
+    def __init__(self, box_type, en):
+        self.type = box_type
+        self.en = en
 
     def __hash__(self):
-        return hash(self.type)^hash(self.en)
+        return hash(self.type) ^ hash(self.en)
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         return self.type == other.type and self.en == other.en
+
 
 class BoxList:
     def __init__(self):
-        self.boxlist=dict()
+        self._box_list = dict()
 
-    def addBoxSegment(self,segment):
-        index=BoxIndex(segment.type,segment.en)
-        if not index in self.boxlist:
-            self.boxlist[index] = list()
-        self.boxlist[index].append(segment)
+    def addBoxSegment(self, segment):
+        index = BoxIndex(segment.type, segment.en)
+        if index not in self._box_list:
+            self._box_list[index] = list()
+        self._box_list[index].append(segment)
 
-    def isComplete(self,segment):
-        index=BoxIndex(segment.type,segment.en)
-        if not index in self.boxlist:
+    def isComplete(self, segment):
+        index = BoxIndex(segment.type, segment.en)
+        if index not in self._box_list:
             return False
         else:
-            total=0
-            boxsize=None
-            for segment in self.boxlist[index]:
-                total = total+len(segment.buffer)
-                if boxsize == None:
-                    boxsize = segment.body
+            total = 0
+            box_size = None
+            for segment in self._box_list[index]:
+                total = total + len(segment.buffer)
+                if box_size is None:
+                    box_size = segment.body
                 else:
-                    if boxsize != segment.body:
+                    if box_size != segment.body:
                         raise BoxSizesInconsistent()
-            if boxsize != None and boxsize == total:
+            if box_size == total:
                 return True
         return False
 
-    def toBox(self,segment,indent):
-        index=BoxIndex(segment.type,segment.en)
-        if not index in self.boxlist:
+    def toBox(self, segment, indent):
+        index = BoxIndex(segment.type, segment.en)
+        if index not in self._box_list:
             return None
         else:
             if segment.lbox > 0xffffffff:
-                buffer=chrl(1)+segment.type+chrq(segment.lbox)
+                buf = chrl(1) + segment.type + chrq(segment.lbox)
             else:
-                buffer=chrl(segment.lbox)+segment.type
-            sortedlist=sorted(self.boxlist[index])
-            offset=sortedlist[0].offset
+                buf = chrl(segment.lbox) + segment.type
+            sortedlist = sorted(self._box_list[index])
+            # offset = sortedlist[0].offset
             for seg in sortedlist:
-                buffer=buffer+seg.buffer
-            stringstream=StringIO.StringIO(buffer)
-            box=JP2Box(None,stringstream)
+                buf = buf + seg.buffer
+            string_stream = StringIO.StringIO(buf)
+            box = JP2Box(None, string_stream)
             box.indent = indent
             return box
-
-        
-
-
-
-    

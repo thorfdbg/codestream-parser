@@ -6,8 +6,8 @@ See LICENCE.txt for copyright and licensing conditions.
 
 import sys
 
-from jp2utils import print_indent, print_hex, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
-    RequiredMarkerMissing
+from jp2utils import print_hex, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
+    RequiredMarkerMissing, BaseCodestream
 from jpgxtbox import BoxList
 
 
@@ -78,14 +78,13 @@ def decode_Level(level):
 # The Codestream Class
 #
 
-class JXSCodestream:
+class JXSCodestream(BaseCodestream):
     def __init__(self, indent=0, offset=0):
-        self.indent = indent
+        super(JXSCodestream, self).__init__(indent=indent)
         self.datacount = 0
         self.bytecount = 0
         self.pos = 0
         self.offset = offset
-        self.markerpos = 0
         self.frametype = 0
         self.c0 = 0
         self.c1 = 0
@@ -107,35 +106,8 @@ class JXSCodestream:
         self.sampling = ""
         self.quant = ""
         self.boxlist = BoxList()
-        self.headers = None
         self.buffer = None
         self.longhdr = None
-
-    def print_indent(self, buf, nl=1):
-        print_indent(buf, self.indent, nl)
-
-    def new_marker(self, name, description):
-        self.print_indent("%-8s: New marker: %s (%s)" % \
-                          (str(self.markerpos), name, description))
-        print
-        self.indent += 1
-        self.headers = []
-
-    def end_marker(self):
-        self.flush_marker()
-        self.indent -= 1
-        print
-
-    def flush_marker(self):
-        if len(self.headers) > 0:
-            maxlen = 0
-            for header in self.headers:
-                maxlen = max(maxlen, len(header[0]))
-            for header in self.headers:
-                s = " " * (maxlen - len(header[0]))
-                self.print_indent("%s%s : %s" % (header[0], s, header[1]))
-            print
-            self.headers = []
 
     def load_marker(self, file, marker):
         mrk = ordw(marker)
@@ -156,7 +128,7 @@ class JXSCodestream:
         self.pos = 0
 
     def load_buffer(self, file):
-        self.markerpos = self.offset
+        self._markerpos = self.offset
         marker = file.read(2)
 
         if len(marker) == 0:
@@ -321,7 +293,7 @@ class JXSCodestream:
             raise JP2Error("invalid sublevel specification")
 
     def parse_PIH(self):
-        self.new_marker("PIH", "Picture header")
+        self._new_marker("PIH", "Picture header")
         self.pos = 4
         if len(self.buffer) != 2 + 26:
             raise InvalidSizedMarker("Size of the PIH marker shall be 26 bytes")
@@ -375,29 +347,29 @@ class JXSCodestream:
             progression = "resolution-line-band-component"
         else:
             progression = "invalid (%s)" % ppoc
-        self.print_indent("Size of the codestream    : %s" % lcod)
-        self.print_indent("Profile                   : %s" % decode_Profile(ppih))
-        self.print_indent("Level                     : %s" % decode_Level(plev))
-        self.print_indent("Width  of the frame       : %s" % wf)
-        self.print_indent("Height of the frame       : %s" % hf)
-        self.print_indent("Precinct width            : %s " % pwidthstr)
-        self.print_indent("Slice height              : %s lines" % (hsl << nly))
-        self.print_indent("Number of components      : %s" % nc)
-        self.print_indent("Code group size           : %s" % ng)
-        self.print_indent("Significance group size   : %s code groups" % ss)
-        self.print_indent("Wavelet bit precision     : %s bits" % bw)
-        self.print_indent("Fractional bits           : %s bits" % fq)
-        self.print_indent("Raw bits per code group   : %s bits" % br)
-        self.print_indent("Slice coding mode         : %s" % slicemode)
-        self.print_indent("Progression mode          : %s" % progression)
-        self.print_indent("Colour decorrelation      : %s" % self.decode_cpih(cpih))
-        self.print_indent("Horizontal wavelet levels : %s" % nlx)
-        self.print_indent("Vertical wavelet levels   : %s" % nly)
-        self.print_indent("Forced long headers       : %s" % lhdr)
-        self.print_indent("Quantizer type            : %s" % self.decode_qpih(qpih))
-        self.print_indent("Sign handling             : %s" % self.decode_fs(fs))
-        self.print_indent("Run mode                  : %s" % self.decode_rm(rm))
-        self.end_marker()
+        self._print_indent("Size of the codestream    : %s" % lcod)
+        self._print_indent("Profile                   : %s" % decode_Profile(ppih))
+        self._print_indent("Level                     : %s" % decode_Level(plev))
+        self._print_indent("Width  of the frame       : %s" % wf)
+        self._print_indent("Height of the frame       : %s" % hf)
+        self._print_indent("Precinct width            : %s " % pwidthstr)
+        self._print_indent("Slice height              : %s lines" % (hsl << nly))
+        self._print_indent("Number of components      : %s" % nc)
+        self._print_indent("Code group size           : %s" % ng)
+        self._print_indent("Significance group size   : %s code groups" % ss)
+        self._print_indent("Wavelet bit precision     : %s bits" % bw)
+        self._print_indent("Fractional bits           : %s bits" % fq)
+        self._print_indent("Raw bits per code group   : %s bits" % br)
+        self._print_indent("Slice coding mode         : %s" % slicemode)
+        self._print_indent("Progression mode          : %s" % progression)
+        self._print_indent("Colour decorrelation      : %s" % self.decode_cpih(cpih))
+        self._print_indent("Horizontal wavelet levels : %s" % nlx)
+        self._print_indent("Vertical wavelet levels   : %s" % nly)
+        self._print_indent("Forced long headers       : %s" % lhdr)
+        self._print_indent("Quantizer type            : %s" % self.decode_qpih(qpih))
+        self._print_indent("Sign handling             : %s" % self.decode_fs(fs))
+        self._print_indent("Run mode                  : %s" % self.decode_rm(rm))
+        self._end_marker()
 
     def decode_qpih(self, qpih):
         if qpih == 0:
@@ -438,7 +410,7 @@ class JXSCodestream:
             return "invalid (%s)" % rm
 
     def parse_CDT(self):
-        self.new_marker("CDT", "Component Table")
+        self._new_marker("CDT", "Component Table")
         self.pos = 4
         c = 0
         maxsx = 0
@@ -480,9 +452,9 @@ class JXSCodestream:
                 elif self.sampling == "420":
                     if sx != 2 or sy != 2:
                         self.sampling = "unknown"
-            self.print_indent("Component %s precision              : %s bits" % (c, bc))
-            self.print_indent("Component %s horizontal subsampling : %s" % (c, sx))
-            self.print_indent("Component %s vertical   subsampling : %s" % (c, sy))
+            self._print_indent("Component %s precision              : %s bits" % (c, bc))
+            self._print_indent("Component %s horizontal subsampling : %s" % (c, sx))
+            self._print_indent("Component %s vertical   subsampling : %s" % (c, sy))
             c += 1
             self.pos += 2
         if self.columnsize == 0:
@@ -491,29 +463,29 @@ class JXSCodestream:
             self.precwidth = self.columnsize * 8 * maxsx * (1 << self.hlevels)
         if c != self.depth:
             raise JP2Error("Number of components in CDT marker is different from NC in picture header")
-        self.print_indent("Sampling format                    : %s" % self.sampling)
+        self._print_indent("Sampling format                    : %s" % self.sampling)
         self.check_profile()
         self.check_level()
-        self.end_marker()
+        self._end_marker()
 
     def parse_COM(self):
-        self.new_marker("COM", "Extensions Marker")
+        self._new_marker("COM", "Extensions Marker")
         tcom = ordw(self.buffer[4:6])
         data = self.buffer[6:]
         if tcom == 0:
-            self.print_indent("Vendor                   : %s" % data)
+            self._print_indent("Vendor                   : %s" % data)
         elif tcom == 1:
-            self.print_indent("Copyright                : %s" % data)
+            self._print_indent("Copyright                : %s" % data)
         elif tcom >= 0x8000:
-            self.print_indent("Vendor 0x%4x information :")
+            self._print_indent("Vendor 0x%4x information :")
             print_hex(data)
         else:
-            self.print_indent("Invalid 0x%4x data       :")
+            self._print_indent("Invalid 0x%4x data       :")
             print_hex(data)
-        self.end_marker()
+        self._end_marker()
 
     def parse_CAP(self):
-        self.new_marker("CAP", "Capabilities Marker")
+        self._new_marker("CAP", "Capabilities Marker")
         self.pos = 4
         while self.pos < len(self.buffer):
             for bit in range(8):
@@ -522,55 +494,55 @@ class JXSCodestream:
                     required = "not required"
                 else:
                     required = "is required"
-                self.print_indent("Capability %3s : %s" % ((self.pos << 3) + bit - 32, required))
+                self._print_indent("Capability %3s : %s" % ((self.pos << 3) + bit - 32, required))
             self.pos += 1
-        self.end_marker()
+        self._end_marker()
 
     def parse_WGT(self):
-        self.new_marker("WGT", "Weights Table")
+        self._new_marker("WGT", "Weights Table")
         self.pos = 4
         b = 0
         while self.pos < len(self.buffer):
             gb = ord(self.buffer[self.pos])
             pb = ord(self.buffer[self.pos + 1])
-            self.print_indent("Band %3s gain,priority : %2s %2s" % (b, gb, pb))
+            self._print_indent("Band %3s gain,priority : %2s %2s" % (b, gb, pb))
             self.pos += 2
             b += 1
-        self.end_marker()
+        self._end_marker()
 
     def parse_NLT(self):
-        self.new_marker("NLT", "Nonlinearity Marker")
+        self._new_marker("NLT", "Nonlinearity Marker")
         tnlt = ord(self.buffer[4:5])
         if tnlt == 1:
-            self.print_indent("NLT Type       : quadratic")
+            self._print_indent("NLT Type       : quadratic")
             if len(self.buffer) != 2 + 2 + 1 + 2:
                 raise InvalidSizedMarker("Size of the NLT marker shall be 5 bytes")
             t1 = ordw(self.buffer[5:7])
-            self.print_indent("DC Offset      : %s" % t1)
+            self._print_indent("DC Offset      : %s" % t1)
         elif tnlt == 2:
-            self.print_indent("NLT Type       : extended")
+            self._print_indent("NLT Type       : extended")
             if len(self.buffer) != 2 + 12:
                 raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
             t1 = ordl(self.buffer[5:9])
             t2 = ordl(self.buffer[9:13])
             e = ord(self.buffer[13])
-            self.print_indent("Threshold t1   : %s" % t1)
-            self.print_indent("Threshold t2   : %s" % t2)
-            self.print_indent("Slope exponent : %s" % e)
-        self.end_marker()
+            self._print_indent("Threshold t1   : %s" % t1)
+            self._print_indent("Threshold t2   : %s" % t2)
+            self._print_indent("Slope exponent : %s" % e)
+        self._end_marker()
 
     def parse_CWD(self):
-        self.new_marker("CWD", "Component Dependent Wavelet Decomposition Marker")
+        self._new_marker("CWD", "Component Dependent Wavelet Decomposition Marker")
         if len(self.buffer) != 2 + 2 + 1:
             raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
         sd = ord(self.buffer[4])
-        self.print_indent("Components excluded from DWT : %s" % sd)
+        self._print_indent("Components excluded from DWT : %s" % sd)
         bands = 2 * min(self.hlevels, self.vlevels) + max(self.hlevels, self.vlevels) + 1
         self.bandcount = (self.depth - sd) * bands + sd
-        self.end_marker()
+        self._end_marker()
 
     def parse_CTS(self):
-        self.new_marker("CTS", "Colour Transformation Specification Marker")
+        self._new_marker("CTS", "Colour Transformation Specification Marker")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the CTS marker shall be 4 bytes")
         cf = ord(self.buffer[4])
@@ -583,43 +555,43 @@ class JXSCodestream:
             xfo = "in-line"
         else:
             xfo = "invalid (%d)" % cf
-        self.print_indent("Transformation type : %s" % xfo)
-        self.print_indent("Red exponent        : %s" % (ex >> 4))
-        self.print_indent("Blue exponent       : %s" % (ex & 0x0f))
-        self.end_marker()
+        self._print_indent("Transformation type : %s" % xfo)
+        self._print_indent("Red exponent        : %s" % (ex >> 4))
+        self._print_indent("Blue exponent       : %s" % (ex & 0x0f))
+        self._end_marker()
 
     def parse_CRG(self):
-        self.new_marker("CRG", "Component Registration Marker")
+        self._new_marker("CRG", "Component Registration Marker")
         self.pos = 4
         c = 0
         while self.pos < len(self.buffer):
             xc = ordw(self.buffer[self.pos:self.pos + 2])
             yc = ordw(self.buffer[self.pos + 2:self.pos + 4])
-            self.print_indent("Component %s position : (0x%04x,0x%04x) = (%3d%%,%3d%%)" % (
+            self._print_indent("Component %s position : (0x%04x,0x%04x) = (%3d%%,%3d%%)" % (
             c, xc, yc, xc * 100 / 65536, yc * 100 / 65536))
             self.pos = self.pos + 4
             c += 1
-        self.end_marker()
+        self._end_marker()
 
     def parse_SLC(self):
-        self.new_marker("SLC", "Slice Header")
+        self._new_marker("SLC", "Slice Header")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the SLC marker shall be 4 bytes")
-        self.print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
-        self.end_marker()
+        self._print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
+        self._end_marker()
 
     def parse_Precinct(self, file, px, py):
-        self.print_indent("%-8s: Precinct (%s,%s)" % (self.offset, px, py))
-        self.indent = self.indent + 1
+        self._print_indent("%-8s: Precinct (%s,%s)" % (self.offset, px, py))
+        self._indent += 1
         bytesize = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
         header = file.read(bytesize)
         self.offset += bytesize
         psize = (ord(header[0:1]) << 16) + (ord(header[1:2]) << 8) + (ord(header[2:3]) << 0)
         qp = ord(header[3])
         rp = ord(header[4])
-        self.print_indent("Data length   : %s bytes" % psize)
-        self.print_indent("Quantization  : %s" % qp)
-        self.print_indent("Refinement    : %s" % rp)
+        self._print_indent("Data length   : %s bytes" % psize)
+        self._print_indent("Quantization  : %s" % qp)
+        self._print_indent("Refinement    : %s" % rp)
         for b in range(self.bandcount):
             mode = (ord(header[(b >> 2) + 5:(b >> 2) + 6]) >> (6 - ((b & 0x03) << 1))) & 0x03
             if mode == 0:
@@ -630,13 +602,13 @@ class JXSCodestream:
                 modestr = "no prediction, sigflags"
             else:  # elif mode == 3:
                 modestr = "vertical prediction, sigflags"
-            self.print_indent("Band %3s mode : %s" % (b, modestr))
+            self._print_indent("Band %3s mode : %s" % (b, modestr))
         file.read(psize)
         print
         self.offset += psize
         self.datacount += psize
         self.bytecount += psize + bytesize
-        self.indent -= 1
+        self._indent -= 1
 
     def parse_Slice(self, file):
         for py in range(self.sliceheight):
@@ -657,8 +629,8 @@ class JXSCodestream:
 
         while len(self.buffer) >= 2 and ordw(self.buffer) != 0xff11:
             if ordw(self.buffer) == 0xff10:
-                self.new_marker("SOC", "Start of Codestream")
-                self.end_marker()
+                self._new_marker("SOC", "Start of Codestream")
+                self._end_marker()
             elif ordw(self.buffer) == 0xff12:
                 self.parse_PIH()
             elif ordw(self.buffer) == 0xff13:
@@ -681,20 +653,20 @@ class JXSCodestream:
             elif ordw(self.buffer) == 0xff50:
                 self.parse_CAP()
             else:
-                self.new_marker("???", "Unknown marker %04x" % ordw(self.buffer))
+                self._new_marker("???", "Unknown marker %04x" % ordw(self.buffer))
                 if len(self.buffer) < 256:
                     print_hex(self.buffer)
-                self.end_marker()
+                self._end_marker()
             self.load_buffer(file)
 
         if len(self.buffer) >= 2:
-            self.new_marker("EOI", "End of image")
-        self.end_marker()
+            self._new_marker("EOI", "End of image")
+        self._end_marker()
         oh = self.bytecount - self.datacount
         self.check_sublevel(self.bytecount)
-        self.print_indent("Size      : %d bytes" % (self.bytecount))
-        self.print_indent("Data Size : %d bytes" % (self.datacount))
-        self.print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / self.bytecount))
+        self._print_indent("Size      : %d bytes" % (self.bytecount))
+        self._print_indent("Data Size : %d bytes" % (self.datacount))
+        self._print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / self.bytecount))
 
 
 #

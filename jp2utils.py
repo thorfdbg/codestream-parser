@@ -66,6 +66,39 @@ class BoxSizesInconsistent(JP2Error):
         super(BoxSizesInconsistent, self).__init__("box sizes are not consistent over box segments")
 
 
+class BaseCodestream(object):
+    def __init__(self, indent=0):
+        self._indent = indent
+        self._headers = []
+        self._markerpos = 0
+
+    def _print_indent(self, buf, nl=1):
+        print_indent(buf, self._indent, nl)
+
+    def _new_marker(self, name, description):
+        self._print_indent("%-8s: New marker: %s (%s)" % \
+                          (str(self._markerpos), name, description))
+        print("")
+        self._indent += 1
+        self._headers = []
+
+    def _end_marker(self):
+        self._flush_marker()
+        self._indent -= 1
+        print("")
+
+    def _flush_marker(self):
+        if len(self._headers) > 0:
+            maxlen = 0
+            for header in self._headers:
+                maxlen = max(maxlen, len(header[0]))
+            for header in self._headers:
+                s = " " * (maxlen - len(header[0]))
+                self._print_indent("%s%s : %s" % (header[0], s, header[1]))
+            print("")
+            self._headers = []
+
+
 def print_hex(buf, indent=0, sec_indent=-1):
     if sec_indent == -1:
         sec_indent = indent
