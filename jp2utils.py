@@ -3,6 +3,7 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
+from __future__ import print_function
 
 
 class JP2Error(Exception):
@@ -76,8 +77,8 @@ class BaseCodestream(object):
         print_indent(buf, self._indent)
 
     def _new_marker(self, name, description):
-        self._print_indent("%-8s: New marker: %s (%s)" % \
-                          (str(self._markerpos), name, description))
+        self._print_indent("%-8s: New marker: %s (%s)" %
+                           (str(self._markerpos), name, description))
         print("")
         self._indent += 1
         self._headers = []
@@ -99,28 +100,40 @@ class BaseCodestream(object):
             self._headers = []
 
 
-def print_hex(buf, indent=0, sec_indent=-1):
+def convert_hex(buf, indent=0, sec_indent=-1, plain_text=False, single_line=True):
     if sec_indent == -1:
         sec_indent = indent
+    lines = []
     line = ""
     buff = "  "
     for i in range(len(buf)):
         if i % 16 == 0:
             if i != 0:
-                line += buff
-                print(line)
+                if plain_text:
+                    line += buff
+                lines.append(line)
                 indent = sec_indent
                 line = ""
                 buff = "  "
             line += " " * indent
         buff += buf[i] if 32 <= ord(buf[i]) < 127 else "."
         line += "%02x " % (ord(buf[i]))
-    line += "   " * ((16 - (len(buf) % 16)) % 16) + buff
-    print(line)
+    if plain_text:
+        line += "   " * ((16 - (len(buf) % 16)) % 16) + buff
+    lines.append(line)
+    if single_line:
+        return " ".join(lines)
+    return lines
 
 
-def print_indent(buf, indent=0):
-    print(" " * indent + buf)
+def print_hex(buf, indent=0, sec_indent=-1, plain_text=True):
+    lines = convert_hex(buf, indent=indent, sec_indent=sec_indent, plain_text=plain_text, single_line=False)
+    for line in lines:
+        print(line)
+
+
+def print_indent(buf, indent=0, nl=True):
+    print(" " * indent + buf, end='\n' if nl else '')
 
 
 def ieee_float_to_float(data):
@@ -207,6 +220,8 @@ class Buffer:
         self.offset = where
 
 
+# .decode('iso-8859-1')
+
 def lordw(buf):
     return (ord(buf[1]) << 8) + (ord(buf[0]) << 0)
 
@@ -249,10 +264,6 @@ def ordq(buf):
            (ord(buf[5]) << 16) + \
            (ord(buf[6]) << 8) + \
            (ord(buf[7]) << 0)
-
-
-def chrw(i):
-    return chr((i >> 8) & 255) + chr(i & 255)
 
 
 def chrl(i):

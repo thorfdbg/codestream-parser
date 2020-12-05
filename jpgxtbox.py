@@ -3,8 +3,8 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
-import StringIO
+from __future__ import print_function, division
+from io import StringIO
 
 from jp2utils import *
 from jp2box import *
@@ -84,7 +84,7 @@ class BoxList:
             # offset = sortedlist[0].offset
             for seg in sortedlist:
                 buf = buf + seg.buffer
-            string_stream = StringIO.StringIO(buf)
+            string_stream = StringIO(buf)
             box = JP2Box(None, string_stream)
             box.indent = indent
             return box

@@ -3,7 +3,7 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
+from __future__ import print_function, division
 import string
 
 from jp2utils import print_indent, version, flags, print_hex, ordl, ordq, UnexpectedEOF, InvalidBoxLength
@@ -25,26 +25,26 @@ class JP2Box:
         self.target = 0
         self.bodysize = 0
 
-    def print_indent(self, buffer, nl=1):
-        print_indent(buffer, self.indent, nl)
+    def print_indent(self, buf, nl=True):
+        print_indent(buf, self.indent, nl)
 
-    def print_versflags(self, buffer):
-        self.print_indent("Version         : %d" % version(buffer))
-        self.print_indent("Flags           : 0x%06x" % flags(buffer))
+    def print_versflags(self, buf):
+        self.print_indent("Version         : %d" % version(buf))
+        self.print_indent("Flags           : 0x%06x" % flags(buf))
 
     def new_box(self, description):
         if self.indent == 0:
-            self.print_indent("%-8s: New Box: %s" % (str(self.offset - self.hdrsize), description), 0)
+            self.print_indent("%-8s: New Box: %s" % (str(self.offset - self.hdrsize), description), False)
         else:
-            self.print_indent("%-8s: Sub Box: %s" % (str(self.offset - self.hdrsize), description), 0)
+            self.print_indent("%-8s: Sub Box: %s" % (str(self.offset - self.hdrsize), description), False)
         self.indent += 1
 
     def end_box(self):
         self.indent -= 1
         print("")
 
-    def print_hex(self, buffer):
-        print_hex(buffer, self.indent)
+    def print_hex(self, buf):
+        print_hex(buf, self.indent)
 
     def boxname(self, id):
         try:
@@ -54,15 +54,15 @@ class JP2Box:
         except ValueError:
             return "0x%02x%02x%02x%02x" % (ord(id[0]), ord(id[1]), ord(id[2]), ord(id[3]))
 
-    def parse_string_header(self, buffer):
-        length = ordl(buffer)
-        id = buffer[4:8]
-        buffer = buffer[8:len(buffer)]
+    def parse_string_header(self, buf):
+        length = ordl(buf)
+        id = buf[4:8]
+        buf = buf[8:len(buf)]
 
         # Read XLBox (extra box length, if any)
         if length == 1:
-            xlength = buffer[0:8]
-            buffer = buffer[8:len(buffer)]
+            xlength = buf[0:8]
+            buf = buf[8:len(buf)]
             if len(xlength) < 8:
                 raise UnexpectedEOF
             length = ordq(xlength)
@@ -75,7 +75,7 @@ class JP2Box:
         elif length > 0:
             length -= 8
 
-        return buffer, length, id
+        return buf, length, id
 
     def parse_header(self):
         if self.end > 0:
@@ -127,7 +127,7 @@ class JP2Box:
 
     def parse(self, hook):
         """Parse a container box and call the hook for each sub-box."""
-        while 1:
+        while True:
             # Read LBox (box length)
             header = self.parse_header()
             if len(header) == 0:

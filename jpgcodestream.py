@@ -3,7 +3,7 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
+from __future__ import print_function, division
 import sys
 
 from jp2utils import ordw, print_hex,\
@@ -35,7 +35,7 @@ class JPGCodestream(BaseCodestream):
         mrk = ordw(marker)
         if 0xffd0 <= mrk <= 0xffd9:
             self.buffer = marker
-        elif mrk >= 0xffc0 or mrk == 0xffb1 or mrk == 0xffb2 or mrk == 0xffb3 or mrk == 0xffb9 or mrk == 0xffba or mrk == 0xffbb:
+        elif mrk >= 0xffc0 or mrk in [0xffb1, 0xffb2, 0xffb3, 0xffb9, 0xffba, 0xffbb]:
             size = file.read(2)
             ln = ordw(size)
             if ln < 2:
@@ -153,7 +153,7 @@ class JPGCodestream(BaseCodestream):
                     self.pos += 1
                 if ln[i] > 0:
                     self._print_indent("%d symbols of size %2d        : %s" % (len(v), i + 1, str(v)))
-            print
+            print("")
         self._end_marker()
 
     def parse_scan(self, file):
@@ -175,7 +175,7 @@ class JPGCodestream(BaseCodestream):
                 dc = table >> 4
                 ac = table & 0x0f
                 self._print_indent("DC table %d   : %d" % (i, dc))
-                if self.frametype == 0xffc3 or self.frametype == 0xffc7 or self.frametype == 0xffcb or self.frametype == 0xffcf:
+                if self.frametype in [0xffc3, 0xffc7, 0xffcb, 0xffcf]:
                     self._print_indent("Reserved %d   : %d" % (i, ac))
                 else:
                     self._print_indent("AC table %d   : %d" % (i, ac))
@@ -194,7 +194,7 @@ class JPGCodestream(BaseCodestream):
             else:
                 scantype = "invalid, type %d" % sstop
             self._print_indent("Scan type    : %s" % scantype)
-        elif self.frametype == 0xffc3 or self.frametype == 0xffc7 or self.frametype == 0xffcb or self.frametype == 0xffcf:
+        elif self.frametype in [0xffc3, 0xffc7, 0xffcb, 0xffcf]:
             self._print_indent("Predictor    : %d" % sstart)
             self._print_indent("Reserved     : %d" % sstop)
         else:
@@ -234,7 +234,7 @@ class JPGCodestream(BaseCodestream):
             self._print_indent("Quantization Table  : %d" % qnt)
             self.pos += 3
         if ordw(self.buffer) != 0xffde:
-            print
+            print("")
             self.frametype = ordw(self.buffer)
             self.load_buffer(file)
             marker = ordw(self.buffer)
@@ -420,7 +420,7 @@ class JPGCodestream(BaseCodestream):
                         self._new_marker("RST", "Restart marker #%d" % (marker - 0xffd0))
                         self._end_marker()
                     elif marker != 0xffff:  # Skip filler bytes.
-                        print
+                        print("")
                         self._print_indent("%d bytes of entropy coded data" % (cnt - 2))
                         self.offset = self.offset - 2
                         file.seek(self.offset)
@@ -457,5 +457,5 @@ if __name__ == "__main__":
     jpg = create_jpg_codestream()
     try:
         jpg.stream_parse(open(filename, "rb"), 0)
-    except JP2Error, e:
+    except JP2Error as e:
         print("***{}".format(str(e)))

@@ -3,7 +3,7 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
+from __future__ import print_function, division
 import getopt
 import sys
 
@@ -576,7 +576,7 @@ class JXRCodestream(BaseCodestream):
         subseqnt = self.vlw_esc()
         if subseqnt > 0:
             current = self.infile.tell()
-            print
+            print("")
             self.print_position()
             self.parse_profile_info()
             self.infile.seek(current + subseqnt)
@@ -646,7 +646,7 @@ class JXRFile:
         print_indent(buf, self._indent, nl)
 
     def print_position(self):
-        print "0x%08lx:" % self.infile.tell()
+        print("0x%08lx:" % self.infile.tell())
 
     def pxFormatToString(self, values):
         uuid = 0
@@ -1349,7 +1349,7 @@ if __name__ == "__main__":
             ignore_codestream = True
 
     if len(files) != 1:
-        print "Usage: [OPTIONS] %s FILE" % (sys.argv[0])
+        print("Usage: [OPTIONS] %s FILE" % sys.argv[0])
         sys.exit(1)
 
     print("###############################################################")
@@ -1372,7 +1372,7 @@ if __name__ == "__main__":
             jxr = JXRFile(file, 1)
             jxr.parse()
         else:
-            print "Input file is neither a JXR codestream nor a JXR file"
+            print("Input file is neither a JXR codestream nor a JXR file")
 
-    except JP2Error, e:
+    except JP2Error as e:
         print("***{}".format(str(e)))

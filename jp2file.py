@@ -3,11 +3,12 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
+from __future__ import print_function, division
 import getopt
 import sys
 
-from jp2utils import ordw, ordl, ordq, fromCString, secsToTime, version, Buffer, flags, ieee_float_to_float, JP2Error
+from jp2utils import ordw, ordl, ordq, fromCString, secsToTime, version, Buffer, flags, ieee_float_to_float,\
+    convert_hex, JP2Error
 from jp2box import JP2Box
 from jxscodestream import decode_Profile, decode_Level, JXSCodestream
 from jp2codestream import JP2Codestream
@@ -75,30 +76,24 @@ def parse_placeholder_box(box, buf):
                 box.print_indent("Number of codestreams  : %d" % num)
 
 
-def parse_rreq_box(box, buffer):
+def parse_rreq_box(box, buf):
     print("Reader Requirements Box")
-    if len(buffer) < 5:
+    if len(buf) < 5:
         box.print_indent("invalid box")
-    ml = ord(buffer[0])
-    box.print_indent("Mask length %d" % ord(buffer[0]))
+    ml = ord(buf[0])
+    box.print_indent("Mask length %d" % ord(buf[0]))
     off = 1
-    box.print_indent("Fully Understand Mask :", 0)
-    for i in range(ml):
-        print "0x%02x " % ord(buffer[off]),
-        off += 1
-    print("")
-    box.print_indent("Display Contents Mask :", 0)
-    for i in range(ml):
-        print "0x%02x " % ord(buffer[off]),
-        off += 1
-    print("")
-    nsf = ordw(buffer[off:off + 2])
+    box.print_indent("Fully Understand Mask : {}".format(convert_hex(buf[off:off + ml])))
+    off += ml
+    box.print_indent("Display Contents Mask : {}".format(convert_hex(buf[off:off + ml])))
+    off += ml
+    nsf = ordw(buf[off:off + 2])
     box.print_indent("Number of standard flags: %d" % nsf)
     off += 2
     for i in range(nsf):
-        sf = ordw(buffer[off:off + 2])
+        sf = ordw(buf[off:off + 2])
         off += 2
-        box.print_indent(" Standard flag :", 0)
+        box.print_indent(" Standard flag :", False)
         if sf == 0:
             print("writer could not fully understand file")
         elif sf == 1:
@@ -265,28 +260,21 @@ def parse_rreq_box(box, buffer):
             print("scRGB color space")
         else:
             print("unknown standard flag %d " % sf)
-
-        box.print_indent(" Standard mask :", 0)
-        for j in range(ml):
-            print "0x%02x " % ord(buffer[off]),
-            off += 1
-        print("")
-    nv = ordw(buffer[off:off + 2])
+        box.print_indent(" Standard mask : {}".format(convert_hex(buf[off:off + ml])))
+        off += ml
+    nv = ordw(buf[off:off + 2])
     off += 2
     box.print_indent(" Number of vendor features : %d" % nv)
     for i in range(nv):
         box.print_indent(" Vendor feature UUID: ", 0)
         print("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" %
-              (ord(buffer[off + 0]), ord(buffer[off + 1]), ord(buffer[off + 2]), ord(buffer[off + 3]),
-               ord(buffer[off + 4]), ord(buffer[off + 5]), ord(buffer[off + 6]), ord(buffer[off + 7]),
-               ord(buffer[off + 8]), ord(buffer[off + 9]), ord(buffer[off + 10]), ord(buffer[off + 11]),
-               ord(buffer[off + 12]), ord(buffer[off + 13]), ord(buffer[off + 14]), ord(buffer[off + 15])))
+              (ord(buf[off + 0]), ord(buf[off + 1]), ord(buf[off + 2]), ord(buf[off + 3]),
+               ord(buf[off + 4]), ord(buf[off + 5]), ord(buf[off + 6]), ord(buf[off + 7]),
+               ord(buf[off + 8]), ord(buf[off + 9]), ord(buf[off + 10]), ord(buf[off + 11]),
+               ord(buf[off + 12]), ord(buf[off + 13]), ord(buf[off + 14]), ord(buf[off + 15])))
         off += 16
-        box.print_indent(" Vendor mask : ", 0)
-        for j in range(ml):
-            print "0x%02x " % ord(buffer[off]),
-            off += 1
-        print("")
+        box.print_indent(" Vendor mask : {}".format(convert_hex(buf[off:off + ml])))
+        off += ml
 
 
 def parse_uuid_box(box, buf):
@@ -294,7 +282,7 @@ def parse_uuid_box(box, buf):
     if len(buf) < 16:
         box.print_indent("invalid box")
         return
-    box.print_indent("UUID      :", 0)
+    box.print_indent("UUID      :", False)
     uuid = buf[0:16]
     if uuid == "\x2d\x41\x21\xde\xb0\xf1\x47\x43\x83\x5b\x00\xf4\x0b\xae\xc2\xed":
         print("Pegasus J2K branding")
@@ -346,50 +334,50 @@ def parse_filetype_box(box, buffer):
     # Print MinV (minor version)
     box.print_indent("Minor version: %d" % ordl(buffer[4:8]))
     # Print CL (Compatibility List)
-    box.print_indent("Compatibility:", 0)
-    clsize = (len(buffer) - 8) / 4
+    box.print_indent("Compatibility:", False)
+    clsize = (len(buffer) - 8) // 4
     for i in range(clsize):
         offset = i * 4 + 8
         if buffer[offset:offset + 4] == "jp2 ":
-            print "JPEG2000",
+            print("JPEG2000", end=' ')
         elif buffer[offset:offset + 4] == "J2P0":
-            print "JPEG2000,Profile 0",
+            print("JPEG2000,Profile 0", end=' ')
         elif buffer[offset:offset + 4] == "J2P1":
-            print "JPEG2000,Profile 1",
+            print("JPEG2000,Profile 1", end=' ')
         elif buffer[offset:offset + 4] == "jpxb":
-            print "JPEG2000-2,JPX",
+            print("JPEG2000-2,JPX", end=' ')
         elif buffer[offset:offset + 4] == "jpx ":
-            print "JPEG2000-2",
+            print("JPEG2000-2", end=' ')
         elif buffer[offset:offset + 4] == "mjp2":
-            print "Motion JPEG2000",
+            print("Motion JPEG2000", end=' ')
         elif buffer[offset:offset + 4] == "mjps":
-            print "Motion JPEG2000,Simple profile",
+            print("Motion JPEG2000,Simple profile", end=' ')
         elif buffer[offset:offset + 4] == "jpxt":
-            print "JPEG XT",
+            print("JPEG XT", end=' ')
         elif buffer[offset:offset + 4] == "jxs ":
-            print "JPEG XS",
+            print("JPEG XS", end=' ')
         elif buffer[offset:offset + 4] == "irfp":
-            print "JPEG XT Intermediate Range Coding",
+            print("JPEG XT Intermediate Range Coding", end=' ')
         elif buffer[offset:offset + 4] == "xrdd":
-            print "JPEG XT HDR Coding profile A",
+            print("JPEG XT HDR Coding profile A", end=' ')
         elif buffer[offset:offset + 4] == "xrxd":
-            print "JPEG XT HDR Coding profile B",
+            print("JPEG XT HDR Coding profile B", end=' ')
         elif buffer[offset:offset + 4] == "xrad":
-            print "JPEG XT HDR Coding profile C",
+            print("JPEG XT HDR Coding profile C", end=' ')
         elif buffer[offset:offset + 4] == "xrrf":
-            print "JPEG XT HDR Coding profile D",
+            print("JPEG XT HDR Coding profile D", end=' ')
         elif buffer[offset:offset + 4] == "lsfp":
-            print "JPEG XT Lossless coding",
+            print("JPEG XT Lossless coding", end=' ')
         elif buffer[offset:offset + 4] == "acfp":
-            print "JPEG XT alpha coding full profile",
+            print("JPEG XT alpha coding full profile", end=' ')
         elif buffer[offset:offset + 4] == "acbp":
-            print "JPEG XT alpha coding base profile",
+            print("JPEG XT alpha coding base profile", end=' ')
         else:
-            print "0x%02x%02x%02x%02x" % \
+            print("0x%02x%02x%02x%02x" %
                   (ord(buffer[offset + 0]),
                    ord(buffer[offset + 1]),
                    ord(buffer[offset + 2]),
-                   ord(buffer[offset + 3])),
+                   ord(buffer[offset + 3])), end=' ')
     print("")
 
 
@@ -665,7 +653,7 @@ def parse_palette_box(box, buf):
             sign = "no"
         box.print_indent("Depth  #%d : %d" % (i, depth))
         box.print_indent("Signed #%d : %s" % (i, sign))
-        es = depth / 8
+        es = depth // 8
         if depth % 8 != 0:
             es += 1
         entrysizes.append(es)
@@ -677,14 +665,14 @@ def parse_palette_box(box, buf):
         return
     pos = 3 + npc
     for i in range(ne):
-        box.print_indent("Entry #%03d:" % (i), 0)
+        box.print_indent("Entry #%03d:" % i, False)
         for j in range(npc):
             v = 0
             for k in range(entrysizes[j]):
                 v <<= 8
                 v += ord(buf[pos])
                 pos += 1
-            print "0x%010x" % (v),
+            print("0x%010x" % v, end=' ')
         print("")
 
 
@@ -693,7 +681,7 @@ def parse_cmap_box(box, buf):
     if len(buf) % 4 != 0:
         box.print_indent("invalid box")
         return
-    entries = len(buf) / 4
+    entries = len(buf) // 4
     for i in range(entries):
         cmp = ordw(buf[i * 4 + 0:i * 4 + 2])
         mtyp = ord(buf[i * 4 + 2])
@@ -912,7 +900,7 @@ def parse_creg_box(box, buf):
     length = len(buf) - offset
     if length % 6 != 0:
         box.print_indent("invalid box length")
-    entries = length / 6
+    entries = length // 6
     for i in range(entries):
         cod = ordw(buf[offset + 0:offset + 2])
         xr = ord(buf[offset + 2])
@@ -1386,7 +1374,7 @@ def parse_mjp2_box(box, buf):
 def parse_jp2p_box(box, buf):
     print("MJP2 profile box")
     box.print_versflags(buf)
-    count = (len(buf) - 4) / 4
+    count = (len(buf) - 4) // 4
     box.print_indent("Number of entries     : %d" % count)
     offset = 4
     for i in range(count):
@@ -2405,6 +2393,7 @@ if __name__ == "__main__":
     type = file.read(2)
     file.seek(0)
     try:
+        a = ordw(type)
         if ord(type[0]) == 0xff and ord(type[1]) == 0x4f:
             jp2 = JP2Codestream()
             jp2.stream_parse(file, 0)
@@ -2418,5 +2407,5 @@ if __name__ == "__main__":
             jp2 = JP2Box(None, file)
             jp2.parse(superbox_hook)
 
-    except JP2Error, e:
+    except JP2Error as e:
         print("***{}".format(str(e)))

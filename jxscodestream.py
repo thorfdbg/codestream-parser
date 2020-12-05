@@ -3,7 +3,7 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
+from __future__ import print_function, division
 import sys
 
 from jp2utils import print_hex, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
@@ -182,7 +182,7 @@ class JXSCodestream(BaseCodestream):
         elif self.profile == 0x3540:  # main 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Main 422.10 only supports 8 and 10 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422":
+            if self.sampling not in ["400", "420", "422"]:
                 raise JP2Error("Main422.10 only supports 400, 420 and 444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main422.10 only supports up to 1 vertical decomposition level")
@@ -194,7 +194,7 @@ class JXSCodestream(BaseCodestream):
         elif self.profile == 0x3a40:  # main 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
+            if self.sampling not in ["400", "420", "422", "444"]:
                 raise JP2Error("Main444.12 only supports 400, 420, 422 and 444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main444.12 only supports up to 1 vertical decomposition level")
@@ -206,7 +206,7 @@ class JXSCodestream(BaseCodestream):
         elif self.profile == 0x3e40:  # main 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main4444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+            if self.sampling not in ["400", "420", "422", "444", "4224", "4444"]:
                 raise JP2Error("Main4444.12 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main4444.12 only supports up to 1 vertical decomposition level")
@@ -218,7 +218,7 @@ class JXSCodestream(BaseCodestream):
         elif self.profile == 0x4a40:  # high 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
+            if self.sampling not in ["400", "420", "422", "444"]:
                 raise JP2Error("High444.12 only supports 400, 420, 422 and 444 subsampling")
             if self.vlevels > 2:
                 raise JP2Error("High444.12 only supports up to 2 vertical decomposition levels")
@@ -230,7 +230,7 @@ class JXSCodestream(BaseCodestream):
         elif self.profile == 0x4e40:  # high 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High4444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+            if self.sampling not in ["400", "420", "422", "444", "4224", "4444"]:
                 raise JP2Error("High4444.12 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
             if self.vlevels > 2:
                 raise JP2Error("High4444.12 only supports up to 2 vertical decomposition levels")
@@ -604,7 +604,7 @@ class JXSCodestream(BaseCodestream):
                 modestr = "vertical prediction, sigflags"
             self._print_indent("Band %3s mode : %s" % (b, modestr))
         file.read(psize)
-        print
+        print("")
         self.offset += psize
         self.datacount += psize
         self.bytecount += psize + bytesize
@@ -689,5 +689,5 @@ if __name__ == "__main__":
     jxs = JXSCodestream()
     try:
         jxs.stream_parse(open(filename, "rb"), 0)
-    except JP2Error, e:
+    except JP2Error as e:
         print("***{}".format(str(e)))

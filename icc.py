@@ -3,10 +3,11 @@
 JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
-
-from jp2utils import ordl, ordw, print_indent, print_hex, JP2Error
+from __future__ import print_function, division
 import getopt
 import sys
+
+from jp2utils import ordl, ordw, print_indent, print_hex, JP2Error
 
 
 def s15d(num):
@@ -130,12 +131,12 @@ def print_curve(buffer, indent):
             value = ordw(buffer[off:off + 2])
             if i % 4 == 0:
                 if i != 0:
-                    print
+                    print("")
                 for j in range(indent):
-                    print " ",
-            print "0x%04x = %g " % (value, value * 1.0 / 65535),
+                    print(" ", end=' ')
+            print("0x%04x = %g " % (value, value * 1.0 / 65535), end=' ')
             off += 2
-        print
+        print("")
 
 
 def print_lutheader(buf, indent):
@@ -353,7 +354,7 @@ def print_mluc(buf, indent):
 
 def print_sf32(buf, indent):
     off = 0
-    for i in range(len(buf) / 4):
+    for i in range(len(buf) // 4):
         v = ordl(buf[off:off + 4])
         off = off + 4
         print_indent("Entry %d : 0x%08x = %g" % (i, v, s15d(v)), indent + 2)
@@ -369,7 +370,7 @@ def print_tag(buf, size, indent):
     elif sign == "text":
         print_indent("Text: %s" % buf[8:len(buf) - 1], indent)
     elif sign == "XYZ ":
-        count = (len(buf) - 8) / 12
+        count = (len(buf) - 8) // 12
         off = 8
         for i in range(count):
             print_xyz(buf[off:off + 12], indent)
@@ -453,7 +454,6 @@ def parse_icc(indent, buf):
 
 
 if __name__ == "__main__":
-
     # Read Arguments
     (args, files) = getopt.getopt(sys.argv[1:], "")
 
@@ -473,5 +473,5 @@ if __name__ == "__main__":
     try:
         parse_icc(0, file.read())
 
-    except JP2Error, e:
+    except JP2Error as e:
         print("***{}".format(str(e)))
