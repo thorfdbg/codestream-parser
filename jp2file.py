@@ -2069,6 +2069,7 @@ def parse_jumd_box(box):
         for i in range(opt_start, len(buf)):
             if ordb(buf[i]) == 0:
                 label_len = i
+                break
         label = fromCString(buf[opt_start:label_len])
         box.print_indent("LABEL: %s" % label)
         opt_start = label_len + 1  # reset for new start
