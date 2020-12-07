@@ -6,7 +6,7 @@ See LICENCE.txt for copyright and licensing conditions.
 from __future__ import print_function, division
 import sys
 
-from jp2utils import print_hex, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
+from jp2utils import print_hex, ordb, ordw, ordl, JP2Error, InvalidSizedMarker, UnexpectedEOC, MisplacedData,\
     RequiredMarkerMissing, BaseCodestream
 from jpgxtbox import BoxList
 
@@ -304,21 +304,21 @@ class JXSCodestream(BaseCodestream):
         hf = ordw(self.buffer[self.pos + 10:self.pos + 12])
         cw = ordw(self.buffer[self.pos + 12:self.pos + 14])
         hsl = ordw(self.buffer[self.pos + 14:self.pos + 16])
-        nc = ord(self.buffer[self.pos + 16])
-        ng = ord(self.buffer[self.pos + 17])
-        ss = ord(self.buffer[self.pos + 18])
-        bw = ord(self.buffer[self.pos + 19])
-        fqbr = ord(self.buffer[self.pos + 20])
+        nc = ordb(self.buffer[self.pos + 16])
+        ng = ordb(self.buffer[self.pos + 17])
+        ss = ordb(self.buffer[self.pos + 18])
+        bw = ordb(self.buffer[self.pos + 19])
+        fqbr = ordb(self.buffer[self.pos + 20])
         fq = fqbr >> 4
         br = fqbr & 15
-        misc = ord(self.buffer[self.pos + 21])
+        misc = ordb(self.buffer[self.pos + 21])
         fslc = misc >> 7
         ppoc = (misc >> 4) & 7
         cpih = misc & 15
-        wavl = ord(self.buffer[self.pos + 22])
+        wavl = ordb(self.buffer[self.pos + 22])
         nlx = wavl >> 4
         nly = wavl & 15
-        cod = ord(self.buffer[self.pos + 23])
+        cod = ordb(self.buffer[self.pos + 23])
         lhdr = (cod >> 7) & 1
         qpih = (cod >> 4) & 7
         fs = (cod >> 2) & 2
@@ -416,8 +416,8 @@ class JXSCodestream(BaseCodestream):
         maxsx = 0
         self.sampling = "400"
         while self.pos < len(self.buffer):
-            bc = ord(self.buffer[self.pos])
-            xy = ord(self.buffer[self.pos + 1])
+            bc = ordb(self.buffer[self.pos])
+            xy = ordb(self.buffer[self.pos + 1])
             sx = xy >> 4
             sy = xy & 15
             if c == 0:
@@ -489,7 +489,7 @@ class JXSCodestream(BaseCodestream):
         self.pos = 4
         while self.pos < len(self.buffer):
             for bit in range(8):
-                cap = ((ord(self.buffer[self.pos])) >> (7 - bit)) & 1
+                cap = ((ordb(self.buffer[self.pos])) >> (7 - bit)) & 1
                 if cap == 0:
                     required = "not required"
                 else:
@@ -503,8 +503,8 @@ class JXSCodestream(BaseCodestream):
         self.pos = 4
         b = 0
         while self.pos < len(self.buffer):
-            gb = ord(self.buffer[self.pos])
-            pb = ord(self.buffer[self.pos + 1])
+            gb = ordb(self.buffer[self.pos])
+            pb = ordb(self.buffer[self.pos + 1])
             self._print_indent("Band %3s gain,priority : %2s %2s" % (b, gb, pb))
             self.pos += 2
             b += 1
@@ -512,7 +512,7 @@ class JXSCodestream(BaseCodestream):
 
     def parse_NLT(self):
         self._new_marker("NLT", "Nonlinearity Marker")
-        tnlt = ord(self.buffer[4:5])
+        tnlt = ordb(self.buffer[4])
         if tnlt == 1:
             self._print_indent("NLT Type       : quadratic")
             if len(self.buffer) != 2 + 2 + 1 + 2:
@@ -525,7 +525,7 @@ class JXSCodestream(BaseCodestream):
                 raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
             t1 = ordl(self.buffer[5:9])
             t2 = ordl(self.buffer[9:13])
-            e = ord(self.buffer[13])
+            e = ordb(self.buffer[13])
             self._print_indent("Threshold t1   : %s" % t1)
             self._print_indent("Threshold t2   : %s" % t2)
             self._print_indent("Slope exponent : %s" % e)
@@ -535,7 +535,7 @@ class JXSCodestream(BaseCodestream):
         self._new_marker("CWD", "Component Dependent Wavelet Decomposition Marker")
         if len(self.buffer) != 2 + 2 + 1:
             raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
-        sd = ord(self.buffer[4])
+        sd = ordb(self.buffer[4])
         self._print_indent("Components excluded from DWT : %s" % sd)
         bands = 2 * min(self.hlevels, self.vlevels) + max(self.hlevels, self.vlevels) + 1
         self.bandcount = (self.depth - sd) * bands + sd
@@ -545,8 +545,8 @@ class JXSCodestream(BaseCodestream):
         self._new_marker("CTS", "Colour Transformation Specification Marker")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the CTS marker shall be 4 bytes")
-        cf = ord(self.buffer[4])
-        ex = ord(self.buffer[5])
+        cf = ordb(self.buffer[4])
+        ex = ordb(self.buffer[5])
         if cf == 0:
             xfo = "full"
         elif cf == 1:
@@ -586,14 +586,14 @@ class JXSCodestream(BaseCodestream):
         bytesize = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
         header = file.read(bytesize)
         self.offset += bytesize
-        psize = (ord(header[0:1]) << 16) + (ord(header[1:2]) << 8) + (ord(header[2:3]) << 0)
-        qp = ord(header[3])
-        rp = ord(header[4])
+        psize = (ordb(header[0]) << 16) + (ordb(header[1]) << 8) + (ordb(header[2]) << 0)
+        qp = ordb(header[3])
+        rp = ordb(header[4])
         self._print_indent("Data length   : %s bytes" % psize)
         self._print_indent("Quantization  : %s" % qp)
         self._print_indent("Refinement    : %s" % rp)
         for b in range(self.bandcount):
-            mode = (ord(header[(b >> 2) + 5:(b >> 2) + 6]) >> (6 - ((b & 0x03) << 1))) & 0x03
+            mode = (ordb(header[(b >> 2) + 5]) >> (6 - ((b & 0x03) << 1))) & 0x03
             if mode == 0:
                 modestr = "no prediction, no sigflags"
             elif mode == 1:
@@ -627,33 +627,36 @@ class JXSCodestream(BaseCodestream):
         if ordw(self.buffer) != 0xff10:
             raise RequiredMarkerMissing("SOI marker missing")
 
-        while len(self.buffer) >= 2 and ordw(self.buffer) != 0xff11:
-            if ordw(self.buffer) == 0xff10:
+        while len(self.buffer) >= 2:
+            marker_value = ordw(self.buffer[0:2])
+            if marker_value == 0xff11:
+                break
+            if marker_value == 0xff10:
                 self._new_marker("SOC", "Start of Codestream")
                 self._end_marker()
-            elif ordw(self.buffer) == 0xff12:
+            elif marker_value == 0xff12:
                 self.parse_PIH()
-            elif ordw(self.buffer) == 0xff13:
+            elif marker_value == 0xff13:
                 self.parse_CDT()
-            elif ordw(self.buffer) == 0xff14:
+            elif marker_value == 0xff14:
                 self.parse_WGT()
-            elif ordw(self.buffer) == 0xff15:
+            elif marker_value == 0xff15:
                 self.parse_COM()
-            elif ordw(self.buffer) == 0xff16:
+            elif marker_value == 0xff16:
                 self.parse_NLT()
-            elif ordw(self.buffer) == 0xff17:
+            elif marker_value == 0xff17:
                 self.parse_CWD()
-            elif ordw(self.buffer) == 0xff18:
+            elif marker_value == 0xff18:
                 self.parse_CTS()
-            elif ordw(self.buffer) == 0xff19:
+            elif marker_value == 0xff19:
                 self.parse_CRG()
-            elif ordw(self.buffer) == 0xff20:
+            elif marker_value == 0xff20:
                 self.parse_SLC()
                 self.parse_Slice(file)
-            elif ordw(self.buffer) == 0xff50:
+            elif marker_value == 0xff50:
                 self.parse_CAP()
             else:
-                self._new_marker("???", "Unknown marker %04x" % ordw(self.buffer))
+                self._new_marker("???", "Unknown marker %04x" % marker_value)
                 if len(self.buffer) < 256:
                     print_hex(self.buffer)
                 self._end_marker()
@@ -664,8 +667,8 @@ class JXSCodestream(BaseCodestream):
         self._end_marker()
         oh = self.bytecount - self.datacount
         self.check_sublevel(self.bytecount)
-        self._print_indent("Size      : %d bytes" % (self.bytecount))
-        self._print_indent("Data Size : %d bytes" % (self.datacount))
+        self._print_indent("Size      : %d bytes" % self.bytecount)
+        self._print_indent("Data Size : %d bytes" % self.datacount)
         self._print_indent("Overhead  : %d bytes (%d%%)" % (oh, 100 * oh / self.bytecount))
 
 

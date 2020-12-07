@@ -6,7 +6,7 @@ See LICENCE.txt for copyright and licensing conditions.
 from __future__ import print_function, division
 import sys
 
-from jp2utils import ordw, print_hex,\
+from jp2utils import ordb, ordw, print_hex,\
     InvalidSizedMarker, RequiredMarkerMissing, UnexpectedEOC, MisplacedData,\
     BaseCodestream, JP2Error
 from jpgxtbox import BoxList, BoxSegment
@@ -32,12 +32,12 @@ class JPGCodestream(BaseCodestream):
         self.pos = 0
 
     def load_marker(self, file, marker):
-        mrk = ordw(marker)
+        mrk = ordw(marker[0:2])
         if 0xffd0 <= mrk <= 0xffd9:
             self.buffer = marker
         elif mrk >= 0xffc0 or mrk in [0xffb1, 0xffb2, 0xffb3, 0xffb9, 0xffba, 0xffbb]:
             size = file.read(2)
-            ln = ordw(size)
+            ln = ordw(size[0:2])
             if ln < 2:
                 raise InvalidSizedMarker("Marker too short")
             self.buffer = marker + size + file.read(ln - 2)
@@ -67,7 +67,7 @@ class JPGCodestream(BaseCodestream):
         self._new_marker("DQT", "Define quantization table")
         self.pos = 4
         while self.pos < len(self.buffer):
-            tq = ord(self.buffer[self.pos])
+            tq = ordb(self.buffer[self.pos])
             self.pos += 1
             pq = tq >> 4
             tq &= 15
@@ -82,7 +82,7 @@ class JPGCodestream(BaseCodestream):
             q = []
             for i in range(64):
                 if pq == 0:
-                    q = q + [ord(self.buffer[self.pos])]
+                    q = q + [ordb(self.buffer[self.pos])]
                     self.pos += 1
                 elif pq == 1:
                     q = q + [ordw(self.buffer[self.pos:self.pos + 2])]
@@ -109,7 +109,7 @@ class JPGCodestream(BaseCodestream):
         self._new_marker("DAC", "Define arithmetic coding conditioning")
         self.pos = 4
         while self.pos < len(self.buffer):
-            tc = ord(self.buffer[self.pos])
+            tc = ordb(self.buffer[self.pos])
             if (tc >> 4) == 0:
                 hclass = "dc"
             elif (tc >> 4) == 1:
@@ -119,7 +119,7 @@ class JPGCodestream(BaseCodestream):
             self._print_indent("AC coding table class     : %s" % hclass)
             self._print_indent("AC coding destination     : %d" % (tc & 0x0f))
             self.pos += 1
-            cond = ord(self.buffer[self.pos])
+            cond = ordb(self.buffer[self.pos])
             self.pos += 1
             if (tc >> 4) == 0:
                 self._print_indent("   Lower Amplitude DC     : %d" % (cond & 0x0f))
@@ -132,7 +132,7 @@ class JPGCodestream(BaseCodestream):
         self._new_marker("DHT", "Define huffman table")
         self.pos = 4
         while self.pos < len(self.buffer):
-            tc = ord(self.buffer[self.pos])
+            tc = ordb(self.buffer[self.pos])
             if (tc >> 4) == 0:
                 hclass = "dc"
             elif (tc >> 4) == 1:
@@ -144,12 +144,12 @@ class JPGCodestream(BaseCodestream):
             self.pos += 1
             ln = []
             for i in range(16):
-                ln = ln + [ord(self.buffer[self.pos])]
+                ln = ln + [ordb(self.buffer[self.pos])]
                 self.pos += 1
             for i in range(16):
                 v = []
                 for j in range(ln[i]):
-                    v = v + [ord(self.buffer[self.pos])]
+                    v = v + [ordb(self.buffer[self.pos])]
                     self.pos += 1
                 if ln[i] > 0:
                     self._print_indent("%d symbols of size %2d        : %s" % (len(v), i + 1, str(v)))
@@ -160,15 +160,15 @@ class JPGCodestream(BaseCodestream):
         self._new_marker("SOS", "Start of Scan")
         if len(self.buffer) < 2 + 2 + 1 + 1:
             raise InvalidSizedMarker("SOS")
-        ns = ord(self.buffer[4])
+        ns = ordb(self.buffer[4])
         if len(self.buffer) != 2 + 6 + 2 * ns:
             raise InvalidSizedMarker("SOS")
         self._print_indent("Number of Components : %d" % ns)
         self.pos = 5
         for i in range(ns):
-            self._print_indent("Component % d : %d" % (i, ord(self.buffer[self.pos])))
+            self._print_indent("Component % d : %d" % (i, ordb(self.buffer[self.pos])))
             self.pos = self.pos + 1
-            table = ord(self.buffer[self.pos])
+            table = ordb(self.buffer[self.pos])
             if self.frametype == 0xfff7:
                 self._print_indent("Mapping %d    : %d" % (i, table))
             else:
@@ -180,8 +180,8 @@ class JPGCodestream(BaseCodestream):
                 else:
                     self._print_indent("AC table %d   : %d" % (i, ac))
             self.pos += 1
-        sstart = ord(self.buffer[self.pos])
-        sstop = ord(self.buffer[self.pos + 1])
+        sstart = ordb(self.buffer[self.pos])
+        sstop = ordb(self.buffer[self.pos + 1])
         self.pos += 2
         if self.frametype == 0xfff7:
             self._print_indent("Near         : %d" % sstart)
@@ -200,7 +200,7 @@ class JPGCodestream(BaseCodestream):
         else:
             self._print_indent("Scan start   : %d" % sstart)
             self._print_indent("Scan stop    : %d" % sstop)
-        ah = ord(self.buffer[self.pos])
+        ah = ordb(self.buffer[self.pos])
         al = ah & 0x0f
         ah >>= 4
         self._print_indent("Shift high   : %d" % ah)
@@ -210,34 +210,34 @@ class JPGCodestream(BaseCodestream):
         return marker
 
     def parse_frame(self, file, process):
-        if ordw(self.buffer) == 0xffde:
+        if ordw(self.buffer[0:2]) == 0xffde:
             self._new_marker("DHP", "Define hierarchical process")
         else:
             self._new_marker("SOF", "Start of frame, type: %s" % process)
 
-        prec = ord(self.buffer[4])
+        prec = ordb(self.buffer[4])
         self._print_indent("Frame bit precision : %d" % prec)
         hei = ordw(self.buffer[5:7])
         wid = ordw(self.buffer[7:9])
         self._print_indent("Frame width         : %d" % wid)
         self._print_indent("Frame height        : %d" % hei)
-        dep = ord(self.buffer[9])
+        dep = ordb(self.buffer[9])
         self._print_indent("Depth               : %d" % dep)
         self.pos = 10
         for i in range(dep):
-            ci = ord(self.buffer[self.pos])
+            ci = ordb(self.buffer[self.pos])
             self._print_indent("Component Id        : %d" % ci)
-            mcu = ord(self.buffer[self.pos + 1])
+            mcu = ordb(self.buffer[self.pos + 1])
             self._print_indent("MCU Width           : %d" % (mcu & 0x0f))
             self._print_indent("MCU Height          : %d" % (mcu >> 4))
-            qnt = ord(self.buffer[self.pos + 2])
+            qnt = ordb(self.buffer[self.pos + 2])
             self._print_indent("Quantization Table  : %d" % qnt)
             self.pos += 3
-        if ordw(self.buffer) != 0xffde:
+        if ordw(self.buffer[0:2]) != 0xffde:
             print("")
-            self.frametype = ordw(self.buffer)
+            self.frametype = ordw(self.buffer[0:2])
             self.load_buffer(file)
-            marker = ordw(self.buffer)
+            marker = ordw(self.buffer[0:2])
             while marker == 0xffc4 or marker == 0xffcc or marker >= 0xffd0:
                 if marker == 0xffda:
                     marker = self.parse_scan(file)
@@ -251,7 +251,7 @@ class JPGCodestream(BaseCodestream):
                 else:
                     self.parse_table()
                 self.load_buffer(file)
-                marker = ordw(self.buffer)
+                marker = ordw(self.buffer[0:2])
         self._end_marker()
 
     def parse_APP(self, idx):
@@ -276,7 +276,7 @@ class JPGCodestream(BaseCodestream):
 
     def parse_EXP(self):
         self._new_marker("EXP", "Frame Expansion marker")
-        ehv = ord(self.buffer[4])
+        ehv = ordb(self.buffer[4])
         self._print_indent("Horizontal expansion : %d" % (ehv >> 4))
         self._print_indent("Vertical   expansion : %d" % (ehv & 0x0f))
         self._end_marker()
@@ -294,7 +294,7 @@ class JPGCodestream(BaseCodestream):
         self._end_marker()
 
     def parse_table(self):
-        marker = ordw(self.buffer)
+        marker = ordw(self.buffer[0:2])
         if marker == 0xffc4:
             self.parse_DHT()
         elif marker == 0xffcc:
@@ -308,7 +308,7 @@ class JPGCodestream(BaseCodestream):
         elif marker == 0xffdc:
             self.parse_DNL()
         elif 0xffe0 <= marker <= 0xffef:
-            self.parse_APP(ordw(self.buffer) - 0xffe0)
+            self.parse_APP(marker - 0xffe0)
         elif marker == 0xfffe:
             self.parse_COM()
         elif marker == 0xffd8:
@@ -330,51 +330,54 @@ class JPGCodestream(BaseCodestream):
         self.offset = startpos
 
         self.load_buffer(file)
-        if ordw(self.buffer) != 0xffd8:
+        if ordw(self.buffer[0:2]) != 0xffd8:
             raise RequiredMarkerMissing("SOI marker missing")
 
-        while ordw(self.buffer) != 0xffd9:
-            if ordw(self.buffer) == 0xffc0:
+        while len(self.buffer) >= 2:
+            marker_value = ordw(self.buffer[0:2])
+            if marker_value == 0xffd9:
+                break
+            if marker_value == 0xffc0:
                 self.parse_frame(file, "baseline")
-            elif ordw(self.buffer) == 0xffc1:
+            elif marker_value == 0xffc1:
                 self.parse_frame(file, "sequential")
-            elif ordw(self.buffer) == 0xffc2:
+            elif marker_value == 0xffc2:
                 self.parse_frame(file, "progressive")
-            elif ordw(self.buffer) == 0xffc3:
+            elif marker_value == 0xffc3:
                 self.parse_frame(file, "lossless")
-            elif ordw(self.buffer) == 0xffc5:
+            elif marker_value == 0xffc5:
                 self.parse_frame(file, "differential sequential")
-            elif ordw(self.buffer) == 0xffc6:
+            elif marker_value == 0xffc6:
                 self.parse_frame(file, "differential progressive")
-            elif ordw(self.buffer) == 0xffc7:
+            elif marker_value == 0xffc7:
                 self.parse_frame(file, "differential lossless")
-            elif ordw(self.buffer) == 0xffc9:
+            elif marker_value == 0xffc9:
                 self.parse_frame(file, "AC sequential")
-            elif ordw(self.buffer) == 0xffca:
+            elif marker_value == 0xffca:
                 self.parse_frame(file, "AC progressive")
-            elif ordw(self.buffer) == 0xffcb:
+            elif marker_value == 0xffcb:
                 self.parse_frame(file, "AC lossless")
-            elif ordw(self.buffer) == 0xffcd:
+            elif marker_value == 0xffcd:
                 self.parse_frame(file, "AC differential sequential")
-            elif ordw(self.buffer) == 0xffce:
+            elif marker_value == 0xffce:
                 self.parse_frame(file, "AC differential progressive")
-            elif ordw(self.buffer) == 0xffcf:
+            elif marker_value == 0xffcf:
                 self.parse_frame(file, "AC differential lossless")
-            elif ordw(self.buffer) == 0xffde:
+            elif marker_value == 0xffde:
                 self.parse_frame(file, "define hierarchical process")
-            elif ordw(self.buffer) == 0xfff7:
+            elif marker_value == 0xfff7:
                 self.parse_frame(file, "JPEG LS")
-            elif ordw(self.buffer) == 0xffb1:
+            elif marker_value == 0xffb1:
                 self.parse_frame(file, "residual sequential")
-            elif ordw(self.buffer) == 0xffb2:
+            elif marker_value == 0xffb2:
                 self.parse_frame(file, "residual progressive")
-            elif ordw(self.buffer) == 0xffb3:
+            elif marker_value == 0xffb3:
                 self.parse_frame(file, "residual large DCT")
-            elif ordw(self.buffer) == 0xffb9:
+            elif marker_value == 0xffb9:
                 self.parse_frame(file, "AC residual sequential")
-            elif ordw(self.buffer) == 0xffba:
+            elif marker_value == 0xffba:
                 self.parse_frame(file, "AC residual progressive")
-            elif ordw(self.buffer) == 0xffbb:
+            elif marker_value == 0xffbb:
                 self.parse_frame(file, "AC residual large DCT")
             else:
                 self.parse_table()
@@ -406,11 +409,11 @@ class JPGCodestream(BaseCodestream):
             dta = file.read(1)
             if len(dta) != 1:
                 raise UnexpectedEOC()
-            self.offset = self.offset + 1
-            self.datacount = self.datacount + 1
-            self.bytecount = self.bytecount + 1
-            cnt = cnt + 1
-            byte = ord(dta)
+            self.offset += 1
+            self.datacount += 1
+            self.bytecount += 1
+            cnt += 1
+            byte = ordb(dta[0])
             if last_byte == 0xff:
                 if (byte > 0x00 and not bitstuff) or (byte >= 0x80 and bitstuff):
                     marker = (last_byte << 8) | byte

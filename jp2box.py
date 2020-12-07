@@ -6,7 +6,7 @@ See LICENCE.txt for copyright and licensing conditions.
 from __future__ import print_function, division
 import string
 
-from jp2utils import print_indent, version, flags, print_hex, ordl, ordq, UnexpectedEOF, InvalidBoxLength
+from jp2utils import print_indent, version, flags, print_hex, ordb, ordl, ordq, UnexpectedEOF, InvalidBoxLength
 
 
 class JP2Box:
@@ -52,7 +52,7 @@ class JP2Box:
                 string.index(string.letters + string.digits, id[i])
             return id
         except ValueError:
-            return "0x%02x%02x%02x%02x" % (ord(id[0]), ord(id[1]), ord(id[2]), ord(id[3]))
+            return "0x%02x%02x%02x%02x" % (ordb(id[0]), ordb(id[1]), ordb(id[2]), ordb(id[3]))
 
     def parse_string_header(self, buf):
         length = ordl(buf)

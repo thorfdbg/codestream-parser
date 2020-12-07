@@ -7,7 +7,7 @@ from __future__ import print_function, division
 import getopt
 import sys
 
-from jp2utils import print_indent, lordl, lordw, lordq, ordw, ordl, ordq,\
+from jp2utils import print_indent, lordl, lordw, lordq, ordb, ordw, ordl, ordq,\
     ieee_float_to_float, ieee_double_to_float, JP2Error, BaseCodestream
 from icc import parse_icc
 
@@ -37,7 +37,7 @@ class JXRCodestream(BaseCodestream):
         while bits > 0:
             avail = self.bitpos
             if avail == 0:
-                self.bitbuffer = ord(self.infile.read(1))
+                self.bitbuffer = ordb(self.infile.read(1)[0])
                 self.bitpos = 8
                 avail = 8
             if avail > bits:
@@ -58,7 +58,7 @@ class JXRCodestream(BaseCodestream):
         self._indent += 1
         gdi = self.infile.read(8)
         self._print_indent("GDI Signature     : %s" % gdi[0:7])
-        flags = ord(self.infile.read(1))
+        flags = ordb(self.infile.read(1)[0])
         self._print_indent("Reserved B        : 0x%01x" % (flags >> 4))
         if flags & 0x08 != 0:
             hard_tiling = "Enabled"
@@ -66,7 +66,7 @@ class JXRCodestream(BaseCodestream):
             hard_tiling = "Disabled"
         self._print_indent("Hard Tiling       : %s" % hard_tiling)
         self._print_indent("Reserved C        : 0x%01x" % (flags & 0x07))
-        flags = ord(self.infile.read(1))
+        flags = ordb(self.infile.read(1)[0])
         if flags & 0x80 != 0:
             tiling = "Enabled"
             tiles = True
@@ -98,7 +98,7 @@ class JXRCodestream(BaseCodestream):
             idx = "No"
         self._print_indent("Index Table       : %s" % idx)
         self._print_indent("Overlap Mode      : %d" % (flags & 0x03))
-        flags = ord(self.infile.read(1))
+        flags = ordb(self.infile.read(1)[0])
         if flags & 0x80 != 0:
             shdr = "Short Headers"
             short = True
@@ -141,7 +141,7 @@ class JXRCodestream(BaseCodestream):
         else:
             alpha = "Not Present"
         self._print_indent("Alpha Plane       : %s" % alpha)
-        flags = ord(self.infile.read(1))
+        flags = ordb(self.infile.read(1)[0])
         color = (flags >> 4)
         bits = flags & 0x0f
         self.output_bitdepth = bits
@@ -202,9 +202,9 @@ class JXRCodestream(BaseCodestream):
         self._print_indent("Image Width       : %d" % width)
         self._print_indent("Image Height      : %d" % height)
         if tiles:
-            t1 = ord(self.infile.read(1))
-            t2 = ord(self.infile.read(1))
-            t3 = ord(self.infile.read(1))
+            t1 = ordb(self.infile.read(1)[0])
+            t2 = ordb(self.infile.read(1)[0])
+            t3 = ordb(self.infile.read(1)[0])
             tilew = ((t1 << 4) | ((t2 & 0xf0) >> 4)) + 1
             tileh = (((t2 & 0x0f) << 8) | t3) + 1
             self._print_indent("Tiles Left-Right  : %d" % tilew)
@@ -217,9 +217,9 @@ class JXRCodestream(BaseCodestream):
         self.tiles_high = tileh
         for x in range(0, tilew - 1):
             if short:
-                tw = ord(self.infile.read(1))
+                tw = ordb(self.infile.read(1)[0])
             else:
-                tw = ordw(self.infile.read(2))
+                tw = ordw(self.infile.read(2)[0:2])
             self._print_indent("Width of Tile  %d : %d MBs" % (x, tw))
             totw -= tw << 4
         if tiles:
@@ -227,17 +227,17 @@ class JXRCodestream(BaseCodestream):
         toth = height
         for y in range(0, tileh - 1):
             if short:
-                th = ord(self.infile.read(1))
+                th = ordb(self.infile.read(1)[0])
             else:
-                th = ord(self.infile.read(2))
+                th = ordb(self.infile.read(2)[0:2])
             self._print_indent("Height of Tile %d : %d MBs" % (y, th))
             toth -= th << 4
         if tiles:
             self._print_indent("Height of Tile %d : %d MBs (computed)" % (tileh - 1, (toth + 15) >> 4))
         if windowing:
-            t1 = ord(self.infile.read(1))
-            t2 = ord(self.infile.read(1))
-            t3 = ord(self.infile.read(1))
+            t1 = ordb(self.infile.read(1)[0])
+            t2 = ordb(self.infile.read(1)[0])
+            t3 = ordb(self.infile.read(1)[0])
             top = t1 >> 2
             left = ((t1 & 0x03) << 4) | ((t2 & 0xf0) >> 4)
             bot = ((t2 & 0x0f) << 2) | ((t3 & 0xc0) >> 6)
@@ -283,7 +283,7 @@ class JXRCodestream(BaseCodestream):
         else:
             self._print_indent("Image Plane Header Contents:")
         self._indent += 1
-        flags = ord(self.infile.read(1))
+        flags = ordb(self.infile.read(1)[0])
         cfmt = (flags & 0xe0) >> 5
         if cfmt == 0:
             cformat = "YOnly"
@@ -334,25 +334,25 @@ class JXRCodestream(BaseCodestream):
             self.num_bands = 0
         self._print_indent("Included Bands    : %s" % bd)
         if cfmt == 1 or cfmt == 2 or cfmt == 3:
-            flags = ord(self.infile.read(1))
+            flags = ordb(self.infile.read(1)[0])
             self._print_indent("Chroma Centering X: %d" % (flags >> 4))
             self._print_indent("Chroma Centering Y: %d" % (flags & 0x0f))
         elif cfmt == 6:
-            comps = ord(self.infile.read(1))
+            comps = ordb(self.infile.read(1)[0])
             if (comps >> 4) == 15:
-                comps = ((comps & 0x0f) | (ord(self.infile.read(1)))) + 16
+                comps = ((comps & 0x0f) | (ordb(self.infile.read(1)[0]))) + 16
             else:
                 self._print_indent("Reserved H        : %d" % (comps & 0x0f))
                 comps = ((comps >> 4) + 1)
         self._print_indent("Components        : %d" % comps)
         self.num_components = comps
         if self.output_bitdepth == 2 or self.output_bitdepth == 3 or self.output_bitdepth == 6:
-            flags = ord(self.infile.read(1))
+            flags = ordb(self.infile.read(1)[0])
             self._print_indent("Output Upshift    : %d" % flags)
         elif self.output_bitdepth == 7:
-            flags = ord(self.infile.read(1))
+            flags = ordb(self.infile.read(1)[0])
             self._print_indent("Mantissa Length   : %d" % flags)
-            flags = ord(self.infile.read(1))
+            flags = ordb(self.infile.read(1)[0])
             self._print_indent("Exponent Bias     : %d" % flags)
         dcuniform = self.get_bits(1)
         if dcuniform == 1:
@@ -389,14 +389,14 @@ class JXRCodestream(BaseCodestream):
         self._indent -= 1
 
     def vlw_esc(self):
-        first = ord(self.infile.read(1))
+        first = ordb(self.infile.read(1)[0])
         if first < 0xfb:
-            second = ord(self.infile.read(1))
+            second = ordb(self.infile.read(1)[0])
             return (first << 8) | second
         elif first == 0xfb:
-            return ordl(self.infile.read(4))
+            return ordl(self.infile.read(4)[0:4])
         elif first == 0xfc:
-            return ordq(self.infile.read(8))
+            return ordq(self.infile.read(8)[0:8])
         else:
             return 0
 
@@ -945,7 +945,7 @@ class JXRFile:
         self._print_indent("Components Config :")
         px = ""
         for i in range(0, len(buf)):
-            c = ord(buf[i])
+            c = ordb(buf[i])
             if c == 0:
                 px += "not present "
             elif c == 1:
@@ -1017,26 +1017,26 @@ class JXRFile:
                 current = self.infile.tell()
                 self.infile.seek(offset)
                 for i in range(0, count):
-                    v = ord(self.infile.read(1))
+                    v = ordb(self.infile.read(1)[0])
                     content += "%02x " % v
                     values.append(v)
                 self.infile.seek(current)
             else:
                 buf = self.infile.read(4)
                 if count > 0:
-                    v = ord(buf[0])
+                    v = ordb(buf[0])
                     content += "%02x " % v
                     values.append(v)
                 if count > 1:
-                    v = ord(buf[1])
+                    v = ordb(buf[1])
                     content += "%02x " % v
                     values.append(v)
                 if count > 2:
-                    v = ord(buf[2])
+                    v = ordb(buf[2])
                     content += "%02x " % v
                     values.append(v)
                 if count > 3:
-                    v = ord(buf[3])
+                    v = ordb(buf[3])
                     content += "%02x " % v
                     values.append(v)
         elif type == 2:
@@ -1047,7 +1047,7 @@ class JXRFile:
                 self.infile.seek(offset)
                 buf = self.infile.read(count)
                 for i in range(0, len(buf)):
-                    content += "%02x " % ord(buf[i])
+                    content += "%02x " % ordb(buf[i])
                 if buf[len(buf) - 1] == '\0':
                     buf = buf[0:len(buf) - 1]
                 values.append(buf)
@@ -1056,7 +1056,7 @@ class JXRFile:
                 buf = self.infile.read(4)
                 buf = buf[0:count]
                 for i in range(0, len(buf)):
-                    content += "%02x " % ord(buf[i])
+                    content += "%02x " % ordb(buf[i])
                 if buf[len(buf) - 1] == '\0':
                     buf = buf[0:len(buf) - 1]
                 values.append(buf)
@@ -1150,21 +1150,21 @@ class JXRFile:
                 buf = self.infile.read(count)
                 self.infile.seek(offset)
                 for i in range(0, count):
-                    content += "0x%02x " % ord(self.infile.read(1))
+                    content += "0x%02x " % ordb(self.infile.read(1)[0])
                 self.infile.seek(current)
             else:
                 current = self.infile.tell()
                 buf = self.infile.read(count)
                 self.infile.seek(current)
                 for i in range(0, count):
-                    content += "0x%02x " % ord(self.infile.read(1))
+                    content += "0x%02x " % ordb(self.infile.read(1)[0])
                 self.infile.seek(current + 4)
         else:
             typename = "Unknown"
             values.append(self.readlong())
             self.infile.seek(self.infile.tell() - 4)
             for i in range(0, 4):
-                content += "0x%02x " % ord(self.infile.read(1))
+                content += "0x%02x " % ordb(self.infile.read(1)[0])
         if count <= 16:
             self._print_indent("0x%04x(%8s[%2d]): %s" % (tag, typename, count, content))
         else:
@@ -1362,13 +1362,13 @@ if __name__ == "__main__":
     type = file.read(2)
     file.seek(0)
     try:
-        if ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
+        if ordw(type[0:1]) == 0x574d:
             jxr = JXRCodestream(file, 0)
             jxr.parse()
-        elif ord(type[0]) == 0x49 and ord(type[1]) == 0x49:
+        elif ordw(type[0:1]) == 0x4949:
             jxr = JXRFile(file, 0)
             jxr.parse()
-        elif ord(type[0]) == 0x4d and ord(type[1]) == 0x4d:
+        elif ordw(type[0:1]) == 0x4d4d:
             jxr = JXRFile(file, 1)
             jxr.parse()
         else:

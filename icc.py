@@ -7,7 +7,7 @@ from __future__ import print_function, division
 import getopt
 import sys
 
-from jp2utils import ordl, ordw, print_indent, print_hex, JP2Error
+from jp2utils import ordb, ordl, ordw, print_indent, print_hex, JP2Error
 
 
 def s15d(num):
@@ -140,9 +140,9 @@ def print_curve(buffer, indent):
 
 
 def print_lutheader(buf, indent):
-    print_indent("Input  channels  : %d" % ord(buf[0:1]), indent)
-    print_indent("Output channels  : %d" % ord(buf[1:2]), indent)
-    print_indent("Grid points      : %d" % ord(buf[2:3]), indent)
+    print_indent("Input  channels  : %d" % ordb(buf[0]), indent)
+    print_indent("Output channels  : %d" % ordb(buf[1]), indent)
+    print_indent("Grid points      : %d" % ordb(buf[2]), indent)
     e00 = ordl(buf[4:8])
     e01 = ordl(buf[8:12])
     e02 = ordl(buf[12:16])
@@ -187,12 +187,12 @@ def print_clut(buf, ic, oc, indent):
     of = 0
     prod = 1
     for i in range(ic):
-        gp = ord(buf[of])
+        gp = ordb(buf[of])
         print_indent("Entries in channel %d   : %d" % (i, gp), indent)
         prod = prod * gp
         of += 1
     print_indent("Total number of entries: %d" % prod, indent)
-    prec = ord(buf[16])
+    prec = ordb(buf[16])
     print_indent("Precision              : %d" % prec, indent)
     of = 20
     v = 0
@@ -200,7 +200,7 @@ def print_clut(buf, ic, oc, indent):
         entry = ""
         for k in range(oc):
             if prec == 1:
-                v = ord(buf[of])
+                v = ordb(buf[of])
                 of += 1
             elif prec == 2:
                 v = ordw(buf[of:of + 2])
@@ -213,8 +213,8 @@ def print_clut(buf, ic, oc, indent):
 
 
 def print_lutmAB(buf, indent):
-    ic = ord(buf[0])
-    oc = ord(buf[1])
+    ic = ordb(buf[0])
+    oc = ordb(buf[1])
     boffs = ordl(buf[4:8])
     mtffs = ordl(buf[8:12])
     moffs = ordl(buf[12:16])
@@ -241,9 +241,9 @@ def print_lutmAB(buf, indent):
 
 def print_lut8(buf, indent):
     print_lutheader(buf, indent)
-    ic = ord(buf[0])
-    oc = ord(buf[1])
-    g = ord(buf[2])
+    ic = ordb(buf[0])
+    oc = ordb(buf[1])
+    g = ordb(buf[2])
     n = 256
     m = 256
     print_indent("Input  entries   : %d" % 256, indent)
@@ -264,9 +264,9 @@ def print_lut8(buf, indent):
 
 def print_lut16(buf, indent):
     print_lutheader(buf, indent)
-    ic = ord(buf[0])
-    oc = ord(buf[1])
-    g = ord(buf[2])
+    ic = ordb(buf[0])
+    oc = ordb(buf[1])
+    g = ordb(buf[2])
     n = ordw(buf[40:42])
     m = ordw(buf[42:44])
     print_indent("Input  entries   : %d" % ordw(buf[40:42]), indent)
@@ -412,8 +412,8 @@ def parse_icc(indent, buf):
     indent += 1
     print_indent("ICC profile size        : %d bytes" % ordl(buf[0:4]), indent)
     print_indent("Preferred CMM type      : %d" % ordl(buf[0:8]), indent)
-    print_indent("ICC major version       : %d" % ord(buf[8]), indent)
-    print_indent("ICC minor version       : %d" % ord(buf[9]), indent)
+    print_indent("ICC major version       : %d" % ordb(buf[8]), indent)
+    print_indent("ICC minor version       : %d" % ordb(buf[9]), indent)
     print_indent("Profile class           : %s" % buf[12:16], indent)
     print_indent("Canonical input space   : %s" % buf[16:20], indent)
     print_indent("Profile connection space: %s" % buf[20:24], indent)

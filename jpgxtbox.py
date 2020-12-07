@@ -6,8 +6,8 @@ See LICENCE.txt for copyright and licensing conditions.
 from __future__ import print_function, division
 from io import StringIO
 
-from jp2utils import *
-from jp2box import *
+from jp2utils import ordw, ordl, ordq, chrl, chrq, InvalidBoxSize, BoxSizesInconsistent
+from jp2box import JP2Box
 
 
 class BoxSegment:

@@ -4,6 +4,8 @@ JPEG codestream-parser (All-JPEG Codestream/File Format Parser Tools)
 See LICENCE.txt for copyright and licensing conditions.
 """
 from __future__ import print_function
+import struct
+import sys
 
 
 class JP2Error(Exception):
@@ -116,8 +118,8 @@ def convert_hex(buf, indent=0, sec_indent=-1, plain_text=False, single_line=True
                 line = ""
                 buff = "  "
             line += " " * indent
-        buff += buf[i] if 32 <= ord(buf[i]) < 127 else "."
-        line += "%02x " % (ord(buf[i]))
+        buff += str(buf[i]) if 32 <= ordb(buf[i]) < 127 else "."
+        line += "%02x " % (ordb(buf[i]))
     if plain_text:
         line += "   " * ((16 - (len(buf) % 16)) % 16) + buff
     lines.append(line)
@@ -220,84 +222,60 @@ class Buffer:
         self.offset = where
 
 
-# .decode('iso-8859-1')
-
-def lordw(buf):
-    return (ord(buf[1]) << 8) + (ord(buf[0]) << 0)
-
-
-def lordl(buf):
-    return (ord(buf[3]) << 24) + \
-           (ord(buf[2]) << 16) + \
-           (ord(buf[1]) << 8) + \
-           (ord(buf[0]) << 0)
-
-
-def lordq(buf):
-    return (ord(buf[7]) << 56) + \
-           (ord(buf[6]) << 48) + \
-           (ord(buf[5]) << 40) + \
-           (ord(buf[4]) << 32) + \
-           (ord(buf[3]) << 24) + \
-           (ord(buf[2]) << 16) + \
-           (ord(buf[1]) << 8) + \
-           (ord(buf[0]) << 0)
+if sys.version_info < (3,):
+    def ordb(buf):
+        return struct.unpack('B', buf)[0]
+else:
+    def ordb(buf):
+        return buf
 
 
 def ordw(buf):
-    return (ord(buf[0]) << 8) + (ord(buf[1]) << 0)
+    return struct.unpack('>H', buf)[0]
 
 
 def ordl(buf):
-    return (ord(buf[0]) << 24) + \
-           (ord(buf[1]) << 16) + \
-           (ord(buf[2]) << 8) + \
-           (ord(buf[3]) << 0)
+    return struct.unpack('>L', buf)[0]
 
 
 def ordq(buf):
-    return (ord(buf[0]) << 56) + \
-           (ord(buf[1]) << 48) + \
-           (ord(buf[2]) << 40) + \
-           (ord(buf[3]) << 32) + \
-           (ord(buf[4]) << 24) + \
-           (ord(buf[5]) << 16) + \
-           (ord(buf[6]) << 8) + \
-           (ord(buf[7]) << 0)
+    return struct.unpack('>Q', buf)[0]
+
+
+def lordw(buf):
+    return struct.unpack('<H', buf)[0]
+
+
+def lordl(buf):
+    return struct.unpack('<L', buf)[0]
+
+
+def lordq(buf):
+    return struct.unpack('<Q', buf)[0]
 
 
 def chrl(i):
-    return chr((i >> 24) & 255) + \
-           chr((i >> 16) & 255) + \
-           chr((i >> 8) & 255) + \
-           chr((i >> 0) & 255)
+    return struct.pack('>L', i)
 
 
 def chrq(i):
-    return chr((i >> 56) & 255) + \
-           chr((i >> 48) & 255) + \
-           chr((i >> 40) & 255) + \
-           chr((i >> 32) & 255) + \
-           chr((i >> 24) & 255) + \
-           chr((i >> 16) & 255) + \
-           chr((i >> 8) & 255) + \
-           chr((i >> 0) & 255)
+    return struct.pack('>Q', i)
 
 
 def version(buf):
-    return ord(buf[0])
+    return ordb(buf[0])
 
 
 def flags(buf):
-    return (ord(buf[1]) << 16) + \
-           (ord(buf[2]) << 8) + \
-           (ord(buf[3]) << 0)
+    return (ordb(buf[1]) << 16) + \
+           (ordb(buf[2]) << 8) + \
+           (ordb(buf[3]) << 0)
 
 
 def fromCString(buf):
     res = ""
     for i in range(len(buf)):
-        ch = ord(buf[i])
+        ch = ordb(buf[i])
         if ch == 0:
             return res
         elif ch < 32 or ch > 127:

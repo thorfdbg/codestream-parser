@@ -7,7 +7,7 @@ from __future__ import print_function, division
 import getopt
 import sys
 
-from jp2utils import ordw, ordl, ordq, fromCString, secsToTime, version, Buffer, flags, ieee_float_to_float,\
+from jp2utils import ordb, ordw, ordl, ordq, fromCString, secsToTime, version, Buffer, flags, ieee_float_to_float,\
     convert_hex, JP2Error
 from jp2box import JP2Box
 from jxscodestream import decode_Profile, decode_Level, JXSCodestream
@@ -25,8 +25,8 @@ def parse_resolution_box(box, buf):
     vrd = ordw(buf[2:4])
     hrn = ordw(buf[4:6])
     hrd = ordw(buf[6:8])
-    vre = ord(buf[8])
-    hre = ord(buf[9])
+    vre = ordb(buf[8])
+    hre = ordb(buf[9])
     box.print_indent("Resolution: %d/%d*10^%d x %d/%d*10^%d" %
                      (hrn, hrd, hre, vrn, vrd, vre))
 
@@ -36,7 +36,7 @@ def parse_placeholder_box(box, buf):
     if len(buf) < 6 + 8:
         box.print_indent("invalid box")
         return
-    flags = ord(buf[3])
+    flags = ordb(buf[3])
     hdr = "Access to original box"
     if flags & 1:
         box.print_indent("%s : yes" % hdr)
@@ -80,8 +80,8 @@ def parse_rreq_box(box, buf):
     print("Reader Requirements Box")
     if len(buf) < 5:
         box.print_indent("invalid box")
-    ml = ord(buf[0])
-    box.print_indent("Mask length %d" % ord(buf[0]))
+    ml = ordb(buf[0])
+    box.print_indent("Mask length %d" % ordb(buf[0]))
     off = 1
     box.print_indent("Fully Understand Mask : {}".format(convert_hex(buf[off:off + ml])))
     off += ml
@@ -268,10 +268,10 @@ def parse_rreq_box(box, buf):
     for i in range(nv):
         box.print_indent(" Vendor feature UUID: ", 0)
         print("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" %
-              (ord(buf[off + 0]), ord(buf[off + 1]), ord(buf[off + 2]), ord(buf[off + 3]),
-               ord(buf[off + 4]), ord(buf[off + 5]), ord(buf[off + 6]), ord(buf[off + 7]),
-               ord(buf[off + 8]), ord(buf[off + 9]), ord(buf[off + 10]), ord(buf[off + 11]),
-               ord(buf[off + 12]), ord(buf[off + 13]), ord(buf[off + 14]), ord(buf[off + 15])))
+              (ordb(buf[off + 0]), ordb(buf[off + 1]), ordb(buf[off + 2]), ordb(buf[off + 3]),
+               ordb(buf[off + 4]), ordb(buf[off + 5]), ordb(buf[off + 6]), ordb(buf[off + 7]),
+               ordb(buf[off + 8]), ordb(buf[off + 9]), ordb(buf[off + 10]), ordb(buf[off + 11]),
+               ordb(buf[off + 12]), ordb(buf[off + 13]), ordb(buf[off + 14]), ordb(buf[off + 15])))
         off += 16
         box.print_indent(" Vendor mask : {}".format(convert_hex(buf[off:off + ml])))
         off += ml
@@ -289,10 +289,10 @@ def parse_uuid_box(box, buf):
         avbrand = True
     else:
         print("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" %
-              (ord(uuid[0]), ord(uuid[1]), ord(uuid[2]), ord(uuid[3]),
-               ord(uuid[4]), ord(uuid[5]), ord(uuid[6]), ord(uuid[7]),
-               ord(uuid[8]), ord(uuid[9]), ord(uuid[10]), ord(uuid[11]),
-               ord(uuid[12]), ord(uuid[13]), ord(uuid[14]), ord(uuid[15])))
+              (ordb(uuid[0]), ordb(uuid[1]), ordb(uuid[2]), ordb(uuid[3]),
+               ordb(uuid[4]), ordb(uuid[5]), ordb(uuid[6]), ordb(uuid[7]),
+               ordb(uuid[8]), ordb(uuid[9]), ordb(uuid[10]), ordb(uuid[11]),
+               ordb(uuid[12]), ordb(uuid[13]), ordb(uuid[14]), ordb(uuid[15])))
         avbrand = False
     box.print_indent("UUID Data :")
     if avbrand and len(buf) >= 20:
@@ -328,7 +328,7 @@ def parse_filetype_box(box, buffer):
         brand = "JPEG XS"
     else:
         brand = "0x%02x%02x%02x%02x" % \
-                (ord(buffer[0]), ord(buffer[1]), ord(buffer[2]), ord(buffer[3]))
+                (ordb(buffer[0]), ordb(buffer[1]), ordb(buffer[2]), ordb(buffer[3]))
     box.print_indent("Brand        : %s" % brand)
 
     # Print MinV (minor version)
@@ -374,10 +374,10 @@ def parse_filetype_box(box, buffer):
             print("JPEG XT alpha coding base profile", end=' ')
         else:
             print("0x%02x%02x%02x%02x" %
-                  (ord(buffer[offset + 0]),
-                   ord(buffer[offset + 1]),
-                   ord(buffer[offset + 2]),
-                   ord(buffer[offset + 3])), end=' ')
+                  (ordb(buffer[offset + 0]),
+                   ordb(buffer[offset + 1]),
+                   ordb(buffer[offset + 2]),
+                   ordb(buffer[offset + 3])), end=' ')
     print("")
 
 
@@ -390,50 +390,50 @@ def parse_image_header_box(box, buf):
     box.print_indent("Width                : %d" % ordl(buf[4:8]))
     box.print_indent("Components           : %d" % ordw(buf[8:10]))
     box.print_indent("Bits Per Component   : %d" %
-                     ((ord(buf[10]) & 0x7f) + 1))
+                     ((ordb(buf[10]) & 0x7f) + 1))
     box.print_indent("Signed Components    :", 0)
-    if ord(buf[10]) & 0x80:
+    if ordb(buf[10]) & 0x80:
         print("yes")
     else:
         print("no")
     box.print_indent("Compression Type     :", 0)
-    if ord(buf[11]) == 0:
+    if ordb(buf[11]) == 0:
         print("uncompressed")
-    elif ord(buf[11]) == 1:
+    elif ordb(buf[11]) == 1:
         print("ITU T.4 / modified Huffman")
-    elif ord(buf[11]) == 2:
+    elif ordb(buf[11]) == 2:
         print("ITU T.4 / modified READ")
-    elif ord(buf[11]) == 3:
+    elif ordb(buf[11]) == 3:
         print("ITU T.6 / modified modified READ")
-    elif ord(buf[11]) == 4:
+    elif ordb(buf[11]) == 4:
         print("JBIG")
-    elif ord(buf[11]) == 5:
+    elif ordb(buf[11]) == 5:
         print("JPEG")
-    elif ord(buf[11]) == 6:
+    elif ordb(buf[11]) == 6:
         print("JPEG-LS")
-    elif ord(buf[11]) == 7:
+    elif ordb(buf[11]) == 7:
         print("JPEG 2000")
-    elif ord(buf[11]) == 8:
+    elif ordb(buf[11]) == 8:
         print("JBIG2")
-    elif ord(buf[11]) == 9:
+    elif ordb(buf[11]) == 9:
         print("JBIG")
-    elif ord(buf[11]) == 11:
+    elif ordb(buf[11]) == 11:
         print("JPEG XR")
-    elif ord(buf[11]) == 12:
+    elif ordb(buf[11]) == 12:
         print("JPEG XS")
     else:
-        print("unknown (%s)" % ord(buf[11]))
+        print("unknown (%s)" % ordb(buf[11]))
     box.print_indent("Unknown Colourspace  :", 0)
-    if ord(buf[12]) == 0:
+    if ordb(buf[12]) == 0:
         print("no")
-    elif ord(buf[12]) == 1:
+    elif ordb(buf[12]) == 1:
         print("yes")
     else:
         print("invalid value")
     box.print_indent("Intellectual Property:", 0)
-    if ord(buf[13]) == 0:
+    if ordb(buf[13]) == 0:
         print("no")
-    elif ord(buf[13]) == 1:
+    elif ordb(buf[13]) == 1:
         print("yes")
     else:
         print("invalid value")
@@ -444,7 +444,7 @@ def parse_bpc_box(box, buffer):
 
     bpc = len(buffer)
     for i in range(bpc):
-        b = ord(buffer[i])
+        b = ordb(buffer[i])
         depth = (b & 0x7f) + 1
         sign = b & 0x80
         if sign:
@@ -473,7 +473,7 @@ def parse_colorspec_box(box, buffer):
     elif id == "prof":
         method = 3
     else:
-        method = ord(buffer[0])
+        method = ordb(buffer[0])
         offset = 3
     box.print_indent("Colour Specification Method:", 0)
     if method == 1:
@@ -489,11 +489,11 @@ def parse_colorspec_box(box, buffer):
     else:
         print("unknown")
     if offset == 3:
-        prec = ord(buffer[1])
+        prec = ordb(buffer[1])
         if prec >= 128:
             prec -= 256
             box.print_indent("Precedence   : %d" % prec)
-            box.print_indent("Approximation: %d" % ord(buffer[2]))
+            box.print_indent("Approximation: %d" % ordb(buffer[2]))
     if method == 1:
         cs = ordl(buffer[offset:offset + 4])
         if len(buffer) != 7 and cs != 19 and cs != 14:
@@ -582,7 +582,7 @@ def parse_colorspec_box(box, buffer):
         cp = ordw(buffer[offset:offset + 2])
         tc = ordw(buffer[offset + 2:offset + 4])
         mc = ordw(buffer[offset + 4:offset + 6])
-        v = ord(buffer[offset + 6:offset + 7])
+        v = ordb(buffer[offset + 6])
         if cp == 1 and tc == 13 and mc == 0 and v == 0:
             colorspec = "IEC 61966-2-1 sRGB"
         elif cp == 1 and tc == 13 and mc == 1 and v == 0:
@@ -634,7 +634,7 @@ def parse_palette_box(box, buf):
         return
     ne = ordw(buf[0:2])
     box.print_indent("Entries         : %d" % ne)
-    npc = ord(buf[2])
+    npc = ordb(buf[2])
     box.print_indent("Created Channels: %d" % npc)
     # Read B[n] list
     if len(buf) - 3 < npc:
@@ -644,7 +644,7 @@ def parse_palette_box(box, buf):
     entrysizes = []
     entrysize = 0  # byte size of one palette row
     for i in range(npc):
-        b = ord(buf[3 + i])
+        b = ordb(buf[3 + i])
         depth = (b & 0x7f) + 1
         depths.append(depth)
         if b & 0x80:
@@ -670,7 +670,7 @@ def parse_palette_box(box, buf):
             v = 0
             for k in range(entrysizes[j]):
                 v <<= 8
-                v += ord(buf[pos])
+                v += ordb(buf[pos])
                 pos += 1
             print("0x%010x" % v, end=' ')
         print("")
@@ -684,8 +684,8 @@ def parse_cmap_box(box, buf):
     entries = len(buf) // 4
     for i in range(entries):
         cmp = ordw(buf[i * 4 + 0:i * 4 + 2])
-        mtyp = ord(buf[i * 4 + 2])
-        pcol = ord(buf[i * 4 + 3])
+        mtyp = ordb(buf[i * 4 + 2])
+        pcol = ordb(buf[i * 4 + 3])
         box.print_indent("Component      #%d: %d" % (i, cmp))
         box.print_indent("Mapping Type   #%d:" % (i), 0)
         if mtyp == 0:
@@ -702,7 +702,7 @@ def parse_opct_box(box, buf):
     if len(buf) < 1:
         box.print_indent("invalid box")
         return
-    typ = ord(buf[0])
+    typ = ordb(buf[0])
     if typ == 0:
         box.print_indent("Opacity Type             : last channel is opacity channel")
     elif typ == 1:
@@ -711,11 +711,11 @@ def parse_opct_box(box, buf):
         if len(buf) < 2:
             box.print_indent("invalid box")
         box.print_indent("Opacity Type             : opacity by chroma key")
-        nch = ord(buf[1])
+        nch = ordb(buf[1])
         # The following is actually a bug. I need to know the bit depth
         # to parse the opacity channel, but the bit depth is not in here.
         for i in range(nch):
-            box.print_indent("Chroma key for channel #%d: 0x%02x" % (i, ord(buf[2 + i])))
+            box.print_indent("Chroma key for channel #%d: 0x%02x" % (i, ordb(buf[2 + i])))
 
 
 def parse_cdef_box(box, buf):
@@ -792,7 +792,7 @@ def parse_copt_box(box, buf):
         return
     height = ordl(buf[0:4])
     width = ordl(buf[4:8])
-    loop = ord(buf[8])
+    loop = ordb(buf[8])
     box.print_indent("Rendered result width  : %d" % width)
     box.print_indent("Rendered result height : %d" % height)
     box.print_indent("Looping count          : %d" % loop)
@@ -862,7 +862,7 @@ def parse_inst_box(box, buf):
             box.print_indent("Scaled layer height               : %d" % height)
             offset += 8
         if ityp & 4:
-            if ord(buf[offset]) & 0x80:
+            if ordb(buf[offset]) & 0x80:
                 persist = "yes"
             else:
                 persist = "no"
@@ -903,10 +903,10 @@ def parse_creg_box(box, buf):
     entries = length // 6
     for i in range(entries):
         cod = ordw(buf[offset + 0:offset + 2])
-        xr = ord(buf[offset + 2])
-        yr = ord(buf[offset + 3])
-        xo = ord(buf[offset + 4])
-        yo = ord(buf[offset + 5])
+        xr = ordb(buf[offset + 2])
+        yr = ordb(buf[offset + 3])
+        xo = ordb(buf[offset + 4])
+        yo = ordb(buf[offset + 5])
         box.print_indent("Codestream number     : %d" % cod)
         box.print_indent("Horizontal resolution : %d" % xr)
         box.print_indent("Vertical   resolution : %d" % yr)
@@ -918,7 +918,7 @@ def parse_creg_box(box, buf):
 def parse_flst_box(box, buf):
     box.print_indent("Fragment list box")
     offset = 0
-    nf = (ord(buf[offset]) << 8) + (ord(buf[offset + 1]))
+    nf = ordw(buf[offset:offset + 1])
     offset += 2
     for i in range(nf):
         off = ordq(buf[offset + 0:offset + 8])
@@ -977,12 +977,12 @@ def parse_uuidlist_box(box, buf):
     for i in range(0, ne):
         box.print_indent("UUID #%d: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" \
                          % (i,
-                            ord(buf[2]), ord(buf[3]), ord(buf[4]),
-                            ord(buf[5]), ord(buf[6]), ord(buf[7]),
-                            ord(buf[8]), ord(buf[9]), ord(buf[10]),
-                            ord(buf[11]), ord(buf[12]), ord(buf[13]),
-                            ord(buf[14]), ord(buf[15]), ord(buf[16]),
-                            ord(buf[17])))
+                            ordb(buf[2]), ordb(buf[3]), ordb(buf[4]),
+                            ordb(buf[5]), ordb(buf[6]), ordb(buf[7]),
+                            ordb(buf[8]), ordb(buf[9]), ordb(buf[10]),
+                            ordb(buf[11]), ordb(buf[12]), ordb(buf[13]),
+                            ordb(buf[14]), ordb(buf[15]), ordb(buf[16]),
+                            ordb(buf[17])))
         buf = buf[16:]
 
 
@@ -993,9 +993,9 @@ def parse_url_box(box, buf):
         box.print_indent("invalid box")
         return
 
-    box.print_indent("Version: %d" % ord(buf[0]))
+    box.print_indent("Version: %d" % ordb(buf[0]))
     box.print_indent("Flags: 0x%02x%02x%02x" %
-                     (ord(buf[1]), ord(buf[2]), ord(buf[3])))
+                     (ordb(buf[1]), ordb(buf[2]), ordb(buf[3])))
     box.print_indent("URL: %s" % fromCString(buf[4:]))
 
 
@@ -1005,11 +1005,11 @@ def parse_roi_box(box, buf):
     if len(buf) < 1:
         box.print_indent("invalid box")
 
-    count = ord(buf[0])
+    count = ordb(buf[0])
     box.print_indent("Number of ROIs : %d" % count)
     offset = 1
     for i in range(count):
-        r = ord(buf[offset])
+        r = ordb(buf[offset])
         if r == 0:
             present = "codestream does not contain a static ROI"
         elif r == 1:
@@ -1017,7 +1017,7 @@ def parse_roi_box(box, buf):
         else:
             present = "invalid present flag"
 
-        rtyp = ord(buf[offset + 1])
+        rtyp = ordb(buf[offset + 1])
         if rtyp == 0:
             shape = "rectangular"
         elif rtyp == 1:
@@ -1025,7 +1025,7 @@ def parse_roi_box(box, buf):
         else:
             shape = "invalid"
 
-        prior = ord(buf[offset + 2])
+        prior = ordb(buf[offset + 2])
         xpos = ordl(buf[offset + 3:offset + 7])
         ypos = ordl(buf[offset + 7:offset + 11])
         width = ordl(buf[offset + 11:offset + 15])
@@ -1277,7 +1277,7 @@ def parse_durn_box(box, buf):
     name = fromCString(buf[4:])
     location = ""
     for i in range(4, len(buf)):
-        if ord(buf[i, i + 1]) == 0:
+        if ordb(buf[i, i + 1]) == 0:
             location = fromCString(buf[i + 1:])
             break
     box.print_indent("Resource name is      : %s" % name)
@@ -1509,24 +1509,24 @@ def parse_trun_box(box, buf):
 
 def parse_fiel_box(box, buf):
     print("Field coding box")
-    if ord(buf[1]) == 0:
+    if ordb(buf[1]) == 0:
         order = "unknown"
-    elif ord(buf[1]) == 1:
+    elif ordb(buf[1]) == 1:
         order = "first line in first sample"
-    elif ord(buf[1]) == 6:
+    elif ordb(buf[1]) == 6:
         order = "first line in second sample"
     else:
-        order = "%d (invalid)" % ord(buf[1])
-    box.print_indent("Field count           : %d" % ord(buf[0]))
+        order = "%d (invalid)" % ordb(buf[1])
+    box.print_indent("Field count           : %d" % ordb(buf[0]))
     box.print_indent("Field order           : %s" % order)
 
 
 def parse_jsub_box(box, buf):
     print("MJP2 subsampling box")
-    box.print_indent("Horizontal subsampling: %d" % ord(buf[0]))
-    box.print_indent("Vertical   subsampling: %d" % ord(buf[1]))
-    box.print_indent("Horizontal offset     : %d" % ord(buf[2]))
-    box.print_indent("Vertical offset       : %d" % ord(buf[3]))
+    box.print_indent("Horizontal subsampling: %d" % ordb(buf[0]))
+    box.print_indent("Vertical   subsampling: %d" % ordb(buf[1]))
+    box.print_indent("Horizontal offset     : %d" % ordb(buf[2]))
+    box.print_indent("Vertical offset       : %d" % ordb(buf[3]))
 
 
 def parse_elst_box(box, buf):
@@ -1581,7 +1581,7 @@ def parse_jp2i_box(box, buf):
 
 def parse_TONE_box(box, buf):
     box.print_indent("Integer Table Lookup box")
-    v = ord(buf[0])
+    v = ordb(buf[0])
     idx = v >> 4
     rb = v & 0x0f
     box.print_indent("Table Index      : %d" % idx)
@@ -1607,7 +1607,7 @@ def parse_TONE_box(box, buf):
 
 def parse_FTON_box(box, buf):
     box.print_indent("Floating Point Table Lookup box")
-    v = ord(buf[0])
+    v = ordb(buf[0])
     idx = v >> 4
     box.print_indent("Table Index      : %d" % idx)
     offset = 1
@@ -1651,7 +1651,7 @@ def parse_LCHK_box(box, buf):
 
 def parse_XTColorTrafo_box(box, buf):
     box.print_indent("JPEG XT Linear Transformation Specification Box")
-    v = ord(buf[0]) >> 4
+    v = ordb(buf[0]) >> 4
     if v == 0:
         typ = "Invalid (zero)"
     elif v == 1:
@@ -1669,10 +1669,10 @@ def parse_XTColorTrafo_box(box, buf):
 
 def parse_XTNLT_box(box, buf):
     box.print_indent("JPEG XT Non-Linear Point Transformation Specification box")
-    v1 = ord(buf[0]) >> 4
-    v2 = ord(buf[0]) & 0x0f
-    v3 = ord(buf[1]) >> 4
-    v4 = ord(buf[1]) & 0x0f
+    v1 = ordb(buf[0]) >> 4
+    v2 = ordb(buf[0]) & 0x0f
+    v3 = ordb(buf[1]) >> 4
+    v4 = ordb(buf[1]) & 0x0f
     box.print_indent("Non-Linear table for component 0 : %d" % v1)
     box.print_indent("Non-Linear table for component 1 : %d" % v2)
     box.print_indent("Non-Linear table for component 2 : %d" % v3)
@@ -1681,8 +1681,8 @@ def parse_XTNLT_box(box, buf):
 
 def parse_MTRX_box(box, buf):
     box.print_indent("JPEG XT Fixpoint Matrix box")
-    idx = ord(buf[0]) >> 4
-    fxp = ord(buf[0]) & 0x0f
+    idx = ordb(buf[0]) >> 4
+    fxp = ordb(buf[0]) & 0x0f
     box.print_indent("Matrix identifier : %d" % idx)
     box.print_indent("Fractional bits   : %d" % fxp)
     ofs = 1
@@ -1705,8 +1705,8 @@ def parse_MTRX_box(box, buf):
 
 def parse_FTRX_box(box, buf):
     box.print_indent("JPEG XT Floating point Matrix box")
-    idx = ord(buf[0]) >> 4
-    fxp = ord(buf[0]) & 0x0f
+    idx = ordb(buf[0]) >> 4
+    fxp = ordb(buf[0]) & 0x0f
     box.print_indent("Matrix identifier : %d" % idx)
     box.print_indent("Fractional bits   : %d" % fxp)
     ofs = 1
@@ -1725,10 +1725,10 @@ def parse_FTRX_box(box, buf):
 
 def parse_AMUL_box(box, buf):
     box.print_indent("JPEG XT Alpha Specification box")
-    mode = ord(buf[0]) >> 4
-    res1 = ord(buf[0]) & 0x0f
-    res2 = ord(buf[1]) >> 4
-    res3 = ord(buf[1]) & 0x0f
+    mode = ordb(buf[0]) >> 4
+    res1 = ordb(buf[0]) & 0x0f
+    res2 = ordb(buf[1]) >> 4
+    res3 = ordb(buf[1]) & 0x0f
     if mode == 0:
         smode = "Opaque"
     elif mode == 1:
@@ -1751,32 +1751,32 @@ def parse_AMUL_box(box, buf):
 
 def parse_OCON_box(box, buf):
     box.print_indent("JPEG XT Output Conversion Box")
-    rb = ord(buf[0]) >> 4
+    rb = ordb(buf[0]) >> 4
     box.print_indent("Total output range in bits       : %d" % (rb + 8))
-    if ord(buf[0]) & 0x08 != 0:
+    if ordb(buf[0]) & 0x08 != 0:
         ll = "precise DCT"
     else:
         ll = "relaxed DCT syntax"
     box.print_indent("DCT Requirements                 : %s" % ll)
-    if ord(buf[0]) & 0x04 != 0:
+    if ordb(buf[0]) & 0x04 != 0:
         cst = "half-logarithmic output map"
     else:
         cst = "identity output map"
     box.print_indent("Output Data Conversion           : %s" % cst)
-    if ord(buf[0]) & 0x02 != 0:
+    if ordb(buf[0]) & 0x02 != 0:
         clmp = "enabled"
     else:
         clmp = "disabled"
     box.print_indent("Output clamping                  : %s" % clmp)
-    if ord(buf[0]) & 0x01 != 0:
+    if ordb(buf[0]) & 0x01 != 0:
         luts = "enabled"
     else:
         luts = "disabled"
     box.print_indent("Output non-linearity             : %s" % luts)
-    v1 = ord(buf[1]) >> 4
-    v2 = ord(buf[1]) & 0x0f
-    v3 = ord(buf[2]) >> 4
-    v4 = ord(buf[2]) & 0x0f
+    v1 = ordb(buf[1]) >> 4
+    v2 = ordb(buf[1]) & 0x0f
+    v3 = ordb(buf[2]) >> 4
+    v4 = ordb(buf[2]) & 0x0f
     box.print_indent("Non-Linear table for component 0 : %d" % v1)
     box.print_indent("Non-Linear table for component 1 : %d" % v2)
     box.print_indent("Non-Linear table for component 2 : %d" % v3)
@@ -1785,18 +1785,18 @@ def parse_OCON_box(box, buf):
 
 def parse_RSPC_box(box, buf):
     box.print_indent("JPEG XT Refinement Specification Box")
-    base = ord(buf[0]) >> 4
-    resi = ord(buf[0]) & 0x0f
+    base = ordb(buf[0]) >> 4
+    resi = ordb(buf[0]) & 0x0f
     box.print_indent("Legacy   image refinement passes : %d" % base)
     box.print_indent("Residual image refinement passes : %d" % resi)
 
 
 def parse_CURV_box(box, buf):
     box.print_indent("JPEG XT parametric non-linear point transformation box")
-    idx = ord(buf[0]) >> 4
-    typ = ord(buf[0]) & 0x0f
-    rmo = ord(buf[1]) >> 4
-    res = ord(buf[1]) & 0x0f
+    idx = ordb(buf[0]) >> 4
+    typ = ordb(buf[0]) & 0x0f
+    rmo = ordb(buf[1]) >> 4
+    res = ordb(buf[1]) & 0x0f
     if typ == 0:
         curve = "Zero"
     elif typ == 1:
@@ -1837,8 +1837,8 @@ def parse_CURV_box(box, buf):
 
 def parse_DCT_box(box, buf):
     box.print_indent("JPEG XT DCT Specification box")
-    dct = ord(buf[0]) >> 4
-    nsh = ord(buf[0]) & 0x0f
+    dct = ordb(buf[0]) >> 4
+    nsh = ordb(buf[0]) & 0x0f
     if dct == 0:
         dcttype = "Fix Point DCT"
     elif dct == 2:
@@ -1931,7 +1931,7 @@ def parse_jxvi_box(box, buffer):
             sampling = "%s@%sbpp" % (subs, bitdepth)
     box.print_indent("Sampling Structure : %s" % sampling)
     box.print_indent("Time code         : %02d:%02d:%02d:%02d" % (
-        ord(buffer[10]), ord(buffer[11]), ord(buffer[12]), ord(buffer[13])))
+        ordb(buffer[10]), ordb(buffer[11]), ordb(buffer[12]), ordb(buffer[13])))
 
 
 def parse_jxpl_box(box, buf):
@@ -1944,8 +1944,8 @@ def parse_jxpl_box(box, buf):
 
 def parse_bmdm_box(box, buf):
     box.print_indent("JPEG Buffer Model Description box")
-    model = ord(buf[0])
-    rd = ord(buf[1])
+    model = ordb(buf[0])
+    rd = ordb(buf[1])
     hblank = ordw(buf[2:4])
     vblank = ordw(buf[4:6])
     if model == 0:
@@ -1990,8 +1990,8 @@ def parse_dmon_box(box, buf):
 def parse_jptp_box(box, buf):
     box.print_indent("JPEG XS Video Transport Parameter box")
     slgs = ordw(buf[0:2])
-    rsnc = ord(buf[2:3])
-    tseq = ord(buf[3:4])
+    rsnc = ordb(buf[2])
+    tseq = ordb(buf[3])
     mtu = ordw(buf[4:6])
     box.print_indent("Slice group size  : %d slices" % slgs)
     box.print_indent("Threads           : %d cores" % rsnc)
@@ -2008,10 +2008,10 @@ def parse_jpvi_box(box, buf):
     brat = ordl(buf[0:4])
     frat = ordl(buf[4:8])
     # schar = ordw(buf[8:10])
-    # hours = ord(buf[10:11])
-    # mins = ord(buf[11:12])
-    # secs = ord(buf[12:13])
-    # frms = ord(buf[13:14])
+    # hours = ordb(buf[10])
+    # mins = ordb(buf[11])
+    # secs = ordb(buf[12])
+    # frms = ordb(buf[13])
     box.print_indent("Bitrate           : %d MBits per second" % brat)
     interlace = (frat >> 30) & 0x03
     denom = (frat >> 24) & 0x3f
@@ -2057,17 +2057,17 @@ def parse_jumd_box(box):
     typ = buf[0:16]
     box.print_indent("TYPE: %02x %02x %02x %02x %02x %02x %02x %02x "
                      "%02x %02x %02x %02x %02x %02x %02x %02x" %
-                     (ord(typ[0]), ord(typ[1]), ord(typ[2]), ord(typ[3]),
-                      ord(typ[4]), ord(typ[5]), ord(typ[6]), ord(typ[7]),
-                      ord(typ[8]), ord(typ[9]), ord(typ[10]), ord(typ[11]),
-                      ord(typ[12]), ord(typ[13]), ord(typ[14]), ord(typ[15])))
-    toggles = ord(buf[16:17])
+                     (ordb(typ[0]), ordb(typ[1]), ordb(typ[2]), ordb(typ[3]),
+                      ordb(typ[4]), ordb(typ[5]), ordb(typ[6]), ordb(typ[7]),
+                      ordb(typ[8]), ordb(typ[9]), ordb(typ[10]), ordb(typ[11]),
+                      ordb(typ[12]), ordb(typ[13]), ordb(typ[14]), ordb(typ[15])))
+    toggles = ordb(buf[16])
     box.print_indent("TOGGLES: %s" % bin(toggles))
     opt_start = 17
     if testBit(toggles, 1):
         label_len = 0
         for i in range(opt_start, len(buf)):
-            if ord(buf[i:i + 1]) == 0:
+            if ordb(buf[i]) == 0:
                 label_len = i
         label = fromCString(buf[opt_start:label_len])
         box.print_indent("LABEL: %s" % label)
@@ -2087,14 +2087,14 @@ def parse_jumd_box(box):
             "%02x %02x %02x %02x %02x %02x %02x %02x "
             "%02x %02x %02x %02x %02x %02x %02x %02x "
             "%02x %02x %02x %02x %02x %02x %02x %02x" %
-            (ord(sig[0]), ord(sig[1]), ord(sig[2]), ord(sig[3]),
-             ord(sig[4]), ord(sig[5]), ord(sig[6]), ord(sig[7]),
-             ord(sig[8]), ord(sig[9]), ord(sig[10]), ord(sig[11]),
-             ord(sig[12]), ord(sig[13]), ord(sig[14]), ord(sig[15]),
-             ord(sig[16]), ord(sig[17]), ord(sig[18]), ord(sig[19]),
-             ord(sig[20]), ord(sig[21]), ord(sig[22]), ord(sig[23]),
-             ord(sig[24]), ord(sig[25]), ord(sig[26]), ord(sig[27]),
-             ord(sig[28]), ord(sig[29]), ord(sig[30]), ord(sig[31])))
+            (ordb(sig[0]), ordb(sig[1]), ordb(sig[2]), ordb(sig[3]),
+             ordb(sig[4]), ordb(sig[5]), ordb(sig[6]), ordb(sig[7]),
+             ordb(sig[8]), ordb(sig[9]), ordb(sig[10]), ordb(sig[11]),
+             ordb(sig[12]), ordb(sig[13]), ordb(sig[14]), ordb(sig[15]),
+             ordb(sig[16]), ordb(sig[17]), ordb(sig[18]), ordb(sig[19]),
+             ordb(sig[20]), ordb(sig[21]), ordb(sig[22]), ordb(sig[23]),
+             ordb(sig[24]), ordb(sig[25]), ordb(sig[26]), ordb(sig[27]),
+             ordb(sig[28]), ordb(sig[29]), ordb(sig[30]), ordb(sig[31])))
     else:
         box.print_indent("No Signature")
 
@@ -2134,13 +2134,13 @@ def superbox_hook(box, id, length):
             else:
                 type = box.infile.read(2)
                 box.infile.seek(box.offset)
-            if ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
+            if ordw(type[0:1]) == 0x574d:
                 jxr = JXRCodestream(box.infile, 1)
                 jxr.parse()
-            elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
+            elif ordw(type[0:1]) == 0xffd8:
                 cs = JPGCodestream(indent=box.indent + 1, hook=superbox_hook)
                 cs.stream_parse(box.infile, box.offset)
-            elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
+            elif ordw(type[0:1]) == 0xff10:
                 cs = JXSCodestream(indent=box.indent + 1)
                 cs.stream_parse(box.infile, box.offset)
             else:
@@ -2393,14 +2393,13 @@ if __name__ == "__main__":
     type = file.read(2)
     file.seek(0)
     try:
-        a = ordw(type)
-        if ord(type[0]) == 0xff and ord(type[1]) == 0x4f:
+        if ordw(type) == 0xff4f:
             jp2 = JP2Codestream()
             jp2.stream_parse(file, 0)
-        elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
+        elif ordw(type) == 0xffd8:
             jpg = JPGCodestream(hook=superbox_hook)
             jpg.stream_parse(file, 0)
-        elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
+        elif ordw(type) == 0xff10:
             jxs = JXSCodestream()
             jxs.stream_parse(file, 0)
         else:
