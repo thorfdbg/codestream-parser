@@ -48,7 +48,7 @@ class JP2Box:
 
     def end_box(self):
 	self.indent -= 1
-	print
+	print()
 
     def print_hex(self, buffer):
 	print_hex(buffer,self.indent)

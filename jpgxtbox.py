@@ -2,7 +2,7 @@
 # $Id: jpgxtbox.py,v 1.3 2016/06/01 16:18:59 thor Exp $
 
 import sys
-import StringIO
+import io
 
 from jp2utils import *
 from jp2box import *
@@ -88,7 +88,7 @@ class BoxList:
             offset=sortedlist[0].offset
             for seg in sortedlist:
                 buffer=buffer+seg.buffer
-            stringstream=StringIO.StringIO(buffer)
+            stringstream=io.StringIO(buffer)
             box=JP2Box(None,stringstream)
             box.indent = indent
             return box

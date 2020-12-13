@@ -13,27 +13,27 @@ def print_hex(buffer, indent = 0, sec_indent = -1):
     for i in range(len(buffer)):
         if i % 16 == 0:
             if i != 0:
-                print "  ",buff
+                print("  ",buff)
                 indent = sec_indent
                 buff   = ""
             for j in range(indent):
-                print " ",
+                print(" ", end=' ')
         if ord(buffer[i]) >= 32 and ord(buffer[i]) < 127:
             buff += buffer[i]
         else:
             buff += "."
-        print "%02x" % (ord(buffer[i])),
+        print("%02x" % (ord(buffer[i])), end=' ')
     for j in range((16 - (len(buffer) % 16)) % 16):
-        print "  ",
-    print "  ",buff
+        print("  ", end=' ')
+    print("  ",buff)
     
 def print_indent(buffer, indent = 0, nl = 1):
     for i in range(indent):
-        print " ",
+        print(" ", end=' ')
     if nl:
-        print buffer
+        print(buffer)
     else:
-        print buffer,
+        print(buffer, end=' ')
 
 def ieee_float_to_float(data):
     if data != 0:
