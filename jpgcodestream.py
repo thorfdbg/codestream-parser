@@ -314,7 +314,7 @@ class JPGCodestream:
         self.end_marker()
 
     def parse_APP(self,idx):
-        if idx == 11 and self.buffer[4:6] == "JP":
+        if idx == 11 and self.buffer[4:6].decode('utf-8') == "JP":
             self.new_marker("APP11","JPEG XT Extension Marker")
             segment=BoxSegment(self.buffer,self.offset)
             self.boxlist.addBoxSegment(segment)

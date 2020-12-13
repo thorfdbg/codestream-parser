@@ -29,27 +29,27 @@ def parse_resolution_box(box,buffer):
 def parse_placeholder_box(box,buffer):
     print("Placeholder box")
     if len(buffer) < 6+8:
-	box.print_indent("invalid box")
-	return
+        box.print_indent("invalid box")
+        return
     flags = ord(buffer[3])
     hdr   = "Access to original box"
     if flags & 1:
-	box.print_indent("%s : yes" % hdr)
+        box.print_indent("%s : yes" % hdr)
     else:
-	box.print_indent("%s : no " % hdr)
+        box.print_indent("%s : no " % hdr)
     hdr  =  "Stream equivalent box "
     if flags & 2:
-	box.print_indent("%s : yes" % hdr)
+        box.print_indent("%s : yes" % hdr)
     else:
-	box.print_indent("%s : no " % hdr)
+        box.print_indent("%s : no " % hdr)
     hdr  =  "Incremental codestream"
     if flags & 4:
-	if flags & 8:
-		box.print_indent("%s : yes (many)" % hdr)
-	else:
-		box.print_indent("%s : yes (one)" % hdr)
+        if flags & 8:
+                box.print_indent("%s : yes (many)" % hdr)
+        else:
+                box.print_indent("%s : yes (one)" % hdr)
     else:
-	box.print_indent("%s : no" % hdr)
+        box.print_indent("%s : no" % hdr)
     binid = ordq(buffer[4:12])
     box.print_indent("Contents in bin        : %d" % binid)
     hdr = box.parse_string_header(buffer[12:len(buffer)])
@@ -58,17 +58,17 @@ def parse_placeholder_box(box,buffer):
     box.print_indent("Original box type      : %s" % hdr[2])
     if flags & 6:
         binid = ordq(buffer[0:8])
-	box.print_indent("Stream equiv. in bin   : %d" % binid)
-	hdr = box.parse_string_header(buffer[8:len(buffer)])
-	buffer = hdr[0]
-	box.print_indent("Stream equiv. box len  : %d" % hdr[1])
-	box.print_indent("Stream equiv. box type : %s" % hdr[2])
-	if flags & 4:
+        box.print_indent("Stream equiv. in bin   : %d" % binid)
+        hdr = box.parse_string_header(buffer[8:len(buffer)])
+        buffer = hdr[0]
+        box.print_indent("Stream equiv. box len  : %d" % hdr[1])
+        box.print_indent("Stream equiv. box type : %s" % hdr[2])
+        if flags & 4:
             csn   = ordq(buffer[0:8])
-	    box.print_indent("Codestream index       : %d" % csn)
-	    if flags & 8:
+            box.print_indent("Codestream index       : %d" % csn)
+            if flags & 8:
                 num = ordl(buffer[0:4])
-	    	box.print_indent("Number of codestreams  : %d" % num)
+                box.print_indent("Number of codestreams  : %d" % num)
 
 def parse_rreq_box(box,buffer):
     print("Reader Requirements Box")
@@ -79,7 +79,7 @@ def parse_rreq_box(box,buffer):
     off = 1
     box.print_indent("Fully Understand Mask :",0)
     for i in range(ml):
-	print("0x%02x " % ord(buffer[off]), end=' ')
+        print("0x%02x " % ord(buffer[off]), end=' ')
         off += 1
     print()
     box.print_indent("Display Contents Mask :",0)
@@ -262,7 +262,7 @@ def parse_rreq_box(box,buffer):
             print("unknown standard flag %d " % sf)
 
         box.print_indent(" Standard mask :",0)
-	for j in range(ml):
+        for j in range(ml):
             print("0x%02x " % ord(buffer[off]), end=' ')
             off += 1
         print()
@@ -270,7 +270,7 @@ def parse_rreq_box(box,buffer):
     off += 2
     box.print_indent(" Number of vendor features : %d" % nv)
     for i in range(nv):
-	box.print_indent(" Vendor feature UUID: ",0)
+        box.print_indent(" Vendor feature UUID: ",0)
         print("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
               (ord(buffer[off+ 0]), ord(buffer[off+ 1]), ord(buffer[off+ 2]), ord(buffer[off+ 3]),
                ord(buffer[off+ 4]), ord(buffer[off+ 5]), ord(buffer[off+ 6]), ord(buffer[off+ 7]),
@@ -388,7 +388,7 @@ def parse_filetype_box(box,buffer):
 
     
 def parse_image_header_box(box,buffer):
-	print("Image Header box")
+        print("Image Header box")
         if len(buffer) != 14:
             box.print_indent ("invalid box")
             return
@@ -493,9 +493,9 @@ def parse_colorspec_box(box,buffer):
         else:
             print("unknown")
         if offset == 3:
-	    prec = ord(buffer[1])
-	    if prec >= 128:
-		prec -= 256;
+            prec = ord(buffer[1])
+            if prec >= 128:
+                prec -= 256;
                 box.print_indent("Precedence   : %d" % prec)
                 box.print_indent("Approximation: %d" % ord(buffer[2]))
         if method == 1:
@@ -510,8 +510,8 @@ def parse_colorspec_box(box,buffer):
                 print("greyscale")
             elif cs == 18:
                 print("YCC")
-	    elif cs == 14:
-		print("CIELab")
+            elif cs == 14:
+                print("CIELab")
                 if len(buffer) != 7+4*7:
                     box.print_indent("invalid box")
                     return
@@ -529,8 +529,8 @@ def parse_colorspec_box(box,buffer):
                 box.print_indent("Range  b     : %d" % rb)
                 box.print_indent("Origin b     : %d" % ob)
                 box.print_indent("Illuminant   : %08x" % il)
-	    elif cs == 19:
-		print("CIEJab")
+            elif cs == 19:
+                print("CIEJab")
                 if len(buffer) != 7+4*6:
                     box.print_indent("invalid box")
                     return
@@ -546,36 +546,36 @@ def parse_colorspec_box(box,buffer):
                 box.print_indent("Origin a     : %d" % oa)
                 box.print_indent("Range  b     : %d" % rb)
                 box.print_indent("Origin b     : %d" % ob)
-	    elif cs == 20:
-		print("esRGB")
-	    elif cs == 21:
-		print("rommRGB")
-	    elif cs == 24:
-		print("esYCC")
+            elif cs == 20:
+                print("esRGB")
+            elif cs == 21:
+                print("rommRGB")
+            elif cs == 24:
+                print("esYCC")
             elif cs == 25:
                 print("scRGB")
-	    elif cs == 0:
-	        print("black on white")
-	    elif cs == 1:
-	        print("YCbCr(1)")
-	    elif cs == 3:
-	        print("YCbCr(2)")
-	    elif cs == 4:
-	        print("YCbCr(3)")
-	    elif cs == 9:
-	        print("PhotoYCC")
-	    elif cs == 11:
-	        print("CMY")
-	    elif cs == 12:
-	        print("CMYK")
-	    elif cs == 13:
-	        print("YCCK")
-	    elif cs == 15:
-		print("white on black")
-	    elif cs == 22:
-	        print("YPbPr(1125/60)")
-	    elif cs == 23:
-	        print("YPbPr(1250/50)")
+            elif cs == 0:
+                print("black on white")
+            elif cs == 1:
+                print("YCbCr(1)")
+            elif cs == 3:
+                print("YCbCr(2)")
+            elif cs == 4:
+                print("YCbCr(3)")
+            elif cs == 9:
+                print("PhotoYCC")
+            elif cs == 11:
+                print("CMY")
+            elif cs == 12:
+                print("CMYK")
+            elif cs == 13:
+                print("YCCK")
+            elif cs == 15:
+                print("white on black")
+            elif cs == 22:
+                print("YPbPr(1125/60)")
+            elif cs == 23:
+                print("YPbPr(1250/50)")
             else:
                 print("unknown (%d)" % (cs))
         elif method == 2 or method == 3:
@@ -631,7 +631,7 @@ def parse_colorspec_box(box,buffer):
             box.print_hex(buffer[offset:])
 
 def parse_palette_box(box, buffer):
-	print("Palette box")
+        print("Palette box")
         if len(buffer) < 3:
             box.print_indent("invalid box")
             return
@@ -680,7 +680,7 @@ def parse_palette_box(box, buffer):
             print()
 
 def parse_cmap_box(box,buffer):
-	print("Component Mapping box")
+        print("Component Mapping box")
         if len(buffer) % 4 != 0:
             box.print_indent("invalid box")
             return
@@ -728,7 +728,7 @@ def parse_cdef_box(box,buffer):
         num = ordw(buffer[0:2])
         if len(buffer) - 2 != num * 6:
             box.print_indent("invalid box")
-	    return
+            return
         for i in range(num):
             cn   = ordw(buffer[i * 6 + 2:i * 6 + 4])
             typ  = ordw(buffer[i * 6 + 4:i * 6 + 6])
@@ -896,19 +896,19 @@ def parse_creg_box(box,buffer):
     offset = 4
     length = len(buffer) - offset
     if length % 6 != 0:
-	box.print_indent("invalid box length")
+        box.print_indent("invalid box length")
     entries = length / 6
     for i in range(entries):
         cod  = ordw(buffer[offset + 0:offset + 2])
-	xr   =  ord(buffer[offset + 2])
-	yr   =  ord(buffer[offset + 3])
-	xo   =  ord(buffer[offset + 4])
-	yo   =  ord(buffer[offset + 5])
-    	box.print_indent("Codestream number     : %d" % cod)
-    	box.print_indent("Horizontal resolution : %d" % xr)
-    	box.print_indent("Vertical   resolution : %d" % yr)
-	box.print_indent("Horizontal offset     : %d" % xo)
-	box.print_indent("Vertical   offset     : %d" % yo)
+        xr   =  ord(buffer[offset + 2])
+        yr   =  ord(buffer[offset + 3])
+        xo   =  ord(buffer[offset + 4])
+        yo   =  ord(buffer[offset + 5])
+        box.print_indent("Codestream number     : %d" % cod)
+        box.print_indent("Horizontal resolution : %d" % xr)
+        box.print_indent("Vertical   resolution : %d" % yr)
+        box.print_indent("Horizontal offset     : %d" % xo)
+        box.print_indent("Vertical   offset     : %d" % yo)
         offset = offset + 6
     
 def parse_flst_box(box,buffer):
@@ -920,24 +920,24 @@ def parse_flst_box(box,buffer):
         off = ordq(buffer[offset + 0:offset + 8])
         ln  = ordl(buffer[offset + 8:offset + 12])
         dr  = ordw(buffer[offset + 12:offset + 14])
-	box.print_indent("fragment start: %10d, size %10d, data xref %x" % (off,ln,dr))
-	offset += 14
+        box.print_indent("fragment start: %10d, size %10d, data xref %x" % (off,ln,dr))
+        offset += 14
 
 def parse_cref_box(box,buffer):
     print("Cross reference box")
     if len(buffer) < 14:
-	box.print_indent("invalid box")
-	return
+        box.print_indent("invalid box")
+        return
     type = buffer[0:4]
     box.print_indent("Referenced box: %s" % type)
     size = buffer[4:8]
     type = buffer[8:12]
     if type == "flst":
-	box.new_box("\"%s\"" % (type))
-	parse_flst_box(box,buffer[12:len(buffer)])
-	box.end_box
+        box.new_box("\"%s\"" % (type))
+        parse_flst_box(box,buffer[12:len(buffer)])
+        box.end_box
     else:
-	box.print_indent("sub-box %s is not a fragment list box" % type)
+        box.print_indent("sub-box %s is not a fragment list box" % type)
 
 def parse_signature_box(box,buffer):
     print("JP2 Signature box")
@@ -953,7 +953,7 @@ def parse_xml_box(box,buffer):
     s = buffer
     if s[len(s) - 1] == "\0":
         s = s[:len(s) - 2]
-    box.print_indent(s)
+    box.print_indent(s.decode('utf-8'))
 
 def parse_uuidlist_box(box,buffer):
     print("UUID List box")
@@ -1991,10 +1991,10 @@ def parse_jumd_box(box):
     buffer = box.infile.read()
     type= buffer[0:16]
     box.print_indent("TYPE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
-           (ord(type[ 0]), ord(type[ 1]), ord(type[ 2]), ord(type[ 3]),
-            ord(type[ 4]), ord(type[ 5]), ord(type[ 6]), ord(type[ 7]),
-            ord(type[ 8]), ord(type[ 9]), ord(type[10]), ord(type[11]),
-            ord(type[12]), ord(type[13]), ord(type[14]), ord(type[15])))
+           (type[ 0], type[ 1], type[ 2], type[ 3],
+            type[ 4], type[ 5], type[ 6], type[ 7],
+            type[ 8], type[ 9], type[10], type[11],
+            type[12], type[13], type[14], type[15]))
     toggles= ord(buffer[16:17])
     box.print_indent("TOGGLES: %s" % bin(toggles))
     opt_start = 17
@@ -2018,14 +2018,14 @@ def parse_jumd_box(box):
     if testBit(toggles,3):
         sig= buffer[opt_start:opt_start+32]
         box.print_indent("SIGNATURE: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
-            (ord(sig[ 0]), ord(sig[ 1]), ord(sig[ 2]), ord(sig[ 3]),
-             ord(sig[ 4]), ord(sig[ 5]), ord(sig[ 6]), ord(sig[ 7]),
-             ord(sig[ 8]), ord(sig[ 9]), ord(sig[10]), ord(sig[11]),
-             ord(sig[12]), ord(sig[13]), ord(sig[14]), ord(sig[15]),
-             ord(sig[16]), ord(sig[17]), ord(sig[18]), ord(sig[19]),
-             ord(sig[20]), ord(sig[21]), ord(sig[22]), ord(sig[23]),
-             ord(sig[24]), ord(sig[25]), ord(sig[26]), ord(sig[27]),
-             ord(sig[28]), ord(sig[29]), ord(sig[30]), ord(sig[31])))
+            (sig[ 0], sig[ 1], sig[ 2], sig[ 3],
+             sig[ 4], sig[ 5], sig[ 6], sig[ 7],
+             sig[ 8], sig[ 9], sig[10], sig[11],
+             sig[12], sig[13], sig[14], sig[15],
+             sig[16], sig[17], sig[18], sig[19],
+             sig[20], sig[21], sig[22], sig[23],
+             sig[24], sig[25], sig[26], sig[27],
+             sig[28], sig[29], sig[30], sig[31]))
     else:
         box.print_indent("No Signature")
 
@@ -2035,7 +2035,7 @@ def parse_json_box(box,buffer):
     s = buffer
     if s[len(s) - 1] == "\0":
         s = s[:len(s) - 2]
-    box.print_indent(s)
+    box.print_indent(s.decode('utf-8'))
 
 def parse_superbox(box,boxtype):
     print(boxtype)
@@ -2075,11 +2075,11 @@ def superbox_hook(box,id,length):
                 cs = JP2Codestream(indent = box.indent + 1)
                 cs.stream_parse(box.infile,box.offset)
     elif id == "mdat":
-	print("Media data box (skipping raw box contents of %s bytes)" % length)
+        print("Media data box (skipping raw box contents of %s bytes)" % length)
     elif id == "free":
- 	print("Free space box (skipping raw box contents of %s bytes)" % length)
+         print("Free space box (skipping raw box contents of %s bytes)" % length)
     elif id == "skip":
- 	print("Free space box (skipping raw box contents of %s bytes)" % length)
+         print("Free space box (skipping raw box contents of %s bytes)" % length)
     elif id == "jp2h":
         parse_superbox(box,"JP2 Header box")
     elif id == "jpch":
@@ -2323,13 +2323,13 @@ if __name__ == "__main__":
     type = file.read(2)
     file.seek(0)
     try:
-        if ord(type[0]) == 0xff and ord(type[1]) == 0x4f:
+        if type[0] == 0xff and type[1] == 0x4f:
             jp2 = JP2Codestream()
             jp2.stream_parse(file,0)
-        elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
+        elif type[0] == 0xff and type[1] == 0xd8:
             jpg = JPGCodestream()
             jpg.stream_parse(file,0)
-        elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
+        elif type[0] == 0xff and type[1] == 0x10:
             jxs = JXSCodestream()
             jxs.stream_parse(file,0)
         else:

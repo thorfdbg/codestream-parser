@@ -18,11 +18,11 @@ def print_hex(buffer, indent = 0, sec_indent = -1):
                 buff   = ""
             for j in range(indent):
                 print(" ", end=' ')
-        if ord(buffer[i]) >= 32 and ord(buffer[i]) < 127:
-            buff += buffer[i]
+        if buffer[i] >= 32 and buffer[i] < 127:
+            buff += chr(buffer[i])
         else:
             buff += "."
-        print("%02x" % (ord(buffer[i])), end=' ')
+        print("%02x" % (buffer[i]), end=' ')
     for j in range((16 - (len(buffer) % 16)) % 16):
         print("  ", end=' ')
     print("  ",buff)
@@ -37,50 +37,50 @@ def print_indent(buffer, indent = 0, nl = 1):
 
 def ieee_float_to_float(data):
     if data != 0:
-	sign      = data >> 31
-	exponent  = (data >> 23) & 0xff
-	mantissa  = data & ((1 << 23) - 1)
-	if exponent == 255:
-	    return NotImplemented
-	elif exponent != 0:
-	    mantissa += 1 << 23
-	else:
-	    exponent += 1
-	number    = 0.0 + mantissa
-	exponent -= 127 + 23
-	if exponent > 0:
-	    number *= 2.0 ** exponent
-	elif exponent < 0:
-	    number /= 2.0 ** (-exponent)
-	if sign != 0:
-	    number = -number
-	return number
+        sign      = data >> 31
+        exponent  = (data >> 23) & 0xff
+        mantissa  = data & ((1 << 23) - 1)
+        if exponent == 255:
+            return NotImplemented
+        elif exponent != 0:
+            mantissa += 1 << 23
+        else:
+            exponent += 1
+        number    = 0.0 + mantissa
+        exponent -= 127 + 23
+        if exponent > 0:
+            number *= 2.0 ** exponent
+        elif exponent < 0:
+            number /= 2.0 ** (-exponent)
+        if sign != 0:
+            number = -number
+        return number
     else:
-	return 0.0
+        return 0.0
 
 
 def ieee_double_to_float(data):
     if data != 0:
-	sign      = data >> 63
-	exponent  = (data >> 51) & ((1 << 11) - 1)
-	mantissa  = data & ((1 << 52) - 1)
-	if exponent == 0x7ff:
-	    return NotImplemented
-	elif exponent != 0:
-	    mantissa += 1 << 52
-	else:
-	    exponent += 1
-	number    = 0.0 + mantissa
-	exponent -= 1023 + 52
-	if exponent > 0:
-	    number *= 2.0 ** exponent
-	elif exponent < 0:
-	    number /= 2.0 ** (-exponent)
-	if sign != 0:
-	    number = -number
-	return number
+        sign      = data >> 63
+        exponent  = (data >> 51) & ((1 << 11) - 1)
+        mantissa  = data & ((1 << 52) - 1)
+        if exponent == 0x7ff:
+            return NotImplemented
+        elif exponent != 0:
+            mantissa += 1 << 52
+        else:
+            exponent += 1
+        number    = 0.0 + mantissa
+        exponent -= 1023 + 52
+        if exponent > 0:
+            number *= 2.0 ** exponent
+        elif exponent < 0:
+            number /= 2.0 ** (-exponent)
+        if sign != 0:
+            number = -number
+        return number
     else:
-	return 0.0
+        return 0.0
 
 # This is a fake substitution for the file class that operates on a memory
 # buffer.
@@ -118,24 +118,24 @@ class Buffer:
         self.offset = where
 
 def ordw(buffer):
-    return (ord(buffer[0]) << 8) + \
-           (ord(buffer[1]) << 0)
+    return (buffer[0] << 8) + \
+           (buffer[1] << 0)
 
 def ordl(buffer):
-    return (ord(buffer[0]) << 24) + \
-           (ord(buffer[1]) << 16) + \
-           (ord(buffer[2]) <<  8) + \
-           (ord(buffer[3]) <<  0)
+    return (buffer[0] << 24) + \
+           (buffer[1] << 16) + \
+           (buffer[2] <<  8) + \
+           (buffer[3] <<  0)
 
 def ordq(buffer):
-    return (ord(buffer[0]) << 56) + \
-           (ord(buffer[1]) << 48) + \
-           (ord(buffer[2]) << 40) + \
-           (ord(buffer[3]) << 32) + \
-           (ord(buffer[4]) << 24) + \
-           (ord(buffer[5]) << 16) + \
-           (ord(buffer[6]) <<  8) + \
-           (ord(buffer[7]) <<  0)
+    return (buffer[0] << 56) + \
+           (buffer[1] << 48) + \
+           (buffer[2] << 40) + \
+           (buffer[3] << 32) + \
+           (buffer[4] << 24) + \
+           (buffer[5] << 16) + \
+           (buffer[6] <<  8) + \
+           (buffer[7] <<  0)
             
 def chrw(i):
     return chr((i >> 8) & 255)+chr(i & 255)
