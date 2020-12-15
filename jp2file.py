@@ -2066,6 +2066,9 @@ def superbox_hook(box,id,length):
                 jxr = JXRCodestream(box.infile,1)
                 jxr.parse()
             elif type[0] == 0xff and type[1] == 0xd8:
+                # WORKAROUND: Prevent NameError caused by circular imports
+                # between jp2file and jpgcodestream.
+                from jpgcodestream import JPGCodestream
                 cs = JPGCodestream(indent = box.indent + 1, hook = superbox_hook)
                 cs.stream_parse(box.infile,box.offset)
             elif type[0] == 0xff and type[1] == 0x10:
