@@ -295,10 +295,10 @@ def parse_uuid_box(box,buffer):
         avbrand = 1
     else:
         print("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x" % \
-              (ord(uuid[ 0]), ord(uuid[ 1]), ord(uuid[ 2]), ord(uuid[ 3]),
-               ord(uuid[ 4]), ord(uuid[ 5]), ord(uuid[ 6]), ord(uuid[ 7]),
-               ord(uuid[ 8]), ord(uuid[ 9]), ord(uuid[10]), ord(uuid[11]),
-               ord(uuid[12]), ord(uuid[13]), ord(uuid[14]), ord(uuid[15])))
+              (uuid[ 0], uuid[ 1], uuid[ 2], uuid[ 3],
+               uuid[ 4], uuid[ 5], uuid[ 6], uuid[ 7],
+               uuid[ 8], uuid[ 9], uuid[10], uuid[11],
+               uuid[12], uuid[13], uuid[14], uuid[15]))
         avbrand = 0
     box.print_indent("UUID Data :")
     if avbrand and len(buffer) >= 20:
