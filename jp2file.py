@@ -2062,13 +2062,13 @@ def superbox_hook(box,id,length):
             else:
                 type = box.infile.read(2)
                 box.infile.seek(box.offset)
-            if ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
+            if type[0] == 0x57 and type[1] == 0x4d:
                 jxr = JXRCodestream(box.infile,1)
                 jxr.parse()
-            elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
+            elif type[0] == 0xff and type[1] == 0xd8:
                 cs = JPGCodestream(indent = box.indent + 1, hook = superbox_hook)
                 cs.stream_parse(box.infile,box.offset)
-            elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
+            elif type[0] == 0xff and type[1] == 0x10:
                 cs = JXSCodestream(indent = box.indent + 1)
                 cs.stream_parse(box.infile,box.offset)
             else:
