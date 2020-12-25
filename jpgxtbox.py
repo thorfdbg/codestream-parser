@@ -83,7 +83,7 @@ class BoxList:
             if segment.lbox > 0xffffffff:
                 buffer=chrl(1)+segment.type+chrq(segment.lbox)
             else:
-                buffer=chrl(segment.lbox).encode('utf-8') + segment.type
+                buffer=segment.lbox.to_bytes(4, byteorder='big') + segment.type
             sortedlist=sorted(self.boxlist[index])
             offset=sortedlist[0].offset
             for seg in sortedlist:
