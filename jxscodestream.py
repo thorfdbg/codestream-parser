@@ -79,7 +79,7 @@ def decode_Level(level):
     sub = level & 0xff
     if lvl == 0x00:
         lstr = "unrestricted"
-    elif lvl == 0x11:
+    elif lvl == 0x04:
         lstr = "1k-1"
     elif lvl == 0x10:
         lstr = "2k-1"
@@ -492,6 +492,8 @@ class JXSCodestream:
                 raise JP2Error("LightBayer only supports the Star-Tetrix color transformation")
             if self.excluded != 1:
                 raise JP2Error("LightBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("LightBayer requires the raw-mode per packet switch")
             if self.fractional != 6 and self.nlt != "None":
                 raise JP2Error("LightBayer requires 6 fractional bits if a non-linear transform is present")
             if self.fractional != 8 and self.nlt == "None":
@@ -514,12 +516,12 @@ class JXSCodestream:
                 raise JP2Error("MainBayer only supports the Star-Tetrix color transformation")
             if self.excluded != 1:
                 raise JP2Error("MainBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("MainBayer requires the raw-mode per packet switch")
             if self.fractional != 6 and self.nlt != "None":
                 raise JP2Error("MainBayer requires 6 fractional bits if a non-linear transform is present")
             if self.fractional != 8 and self.nlt == "None":
                 raise JP2Error("MainBayer requires 8 fractional bits without a non-linear transform")
-            if self.extent != "full":
-                raise JP2Error("MainBayer requires the full Star-Tetrix transformation")
             self.nbpp = 64
         elif self.profile == 0xc340: #HighBayer
             if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
@@ -536,19 +538,19 @@ class JXSCodestream:
                 raise JP2Error("HighBayer only supports the Star-Tetrix color transformation")
             if self.excluded != 1:
                 raise JP2Error("HighBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("HighBayer requires the raw-mode per packet switch")
             if self.fractional != 6 and self.nlt != "None":
                 raise JP2Error("HighBayer requires 6 fractional bits if a non-linear transform is present")
             if self.fractional != 8 and self.nlt == "None":
                 raise JP2Error("HighBayer requires 8 fractional bits without a non-linear transform")
-            if self.extent != "full":
-                raise JP2Error("HighBayer requires the full Star-Tetrix transformation")
             self.nbpp = 64
         elif self.profile != 0x0000:
             raise JP2Error("invalid profile indicator %s" % self.profile)
             
     def check_level(self):
         level = self.level >> 8 # the rest is the sublevel
-        if level == 0x11: #1k-1 level
+        if level == 0x04: #1k-1 level
             if self.width > 1280 or self.height > 5120 or self.width * self.height > 1024 * 2048:
                 raise JP2Error("image is too large for 2k-1 level")
         elif level == 0x10: #2k-1 level
