@@ -591,7 +591,7 @@ class JXSCodestream:
         elif sublevel == 0x10: # 12bpp
             if bpp > 12.0:
                 raise JP2Error("bitrate exceeds 12bpp for 12bpp sublevel")
-        elif sublevel == 0x0a: # 9bpp
+        elif sublevel == 0x0c: # 9bpp
             if bpp > 9.0:
                 raise JP2Error("bitrate exceeds 9bpp for 9bpp sublevel")
         elif sublevel == 0x08: #6bpp
