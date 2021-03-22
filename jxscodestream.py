@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.11 2020/10/15 12:14:27 thor Exp $
+# $Id: jxscodestream.py,v 1.13 2020/12/07 10:10:15 thor Exp $
 
 import sys
 
@@ -51,6 +51,8 @@ def decode_Profile(profile):
         return "light 444.12"
     elif profile == 0x2500:
         return "light-subline"
+    elif profile == 0x3240:
+        return "main 420"
     elif profile == 0x3540:
         return "main 422.10"
     elif profile == 0x3a40:
@@ -61,6 +63,14 @@ def decode_Profile(profile):
         return "high 444.12"
     elif profile == 0x4e40:
         return "high 4444.12"
+    elif profile == 0x6EC0:
+        return "mls 12"
+    elif profile == 0x9300:
+        return "light bayer"
+    elif profile == 0xb340:
+        return "main bayer"
+    elif profile == 0xc340:
+        return "high bayer"
     else:
         return "invalid (0x%x)" % profile
 
@@ -69,6 +79,8 @@ def decode_Level(level):
     sub = level & 0xff
     if lvl == 0x00:
         lstr = "unrestricted"
+    elif lvl == 0x04:
+        lstr = "1k-1"
     elif lvl == 0x10:
         lstr = "2k-1"
     elif lvl == 0x20:
@@ -99,6 +111,8 @@ def decode_Level(level):
         sstr = "6bpp"
     elif sub == 0x04:
         sstr = "3bpp"
+    elif sub == 0x03:
+        sstr = "2bpp"
     else:
         sstr = "invalid (0x%x)" % sub
     return "%s@%s" % (lstr,sstr)
@@ -131,8 +145,15 @@ class JXSCodestream:
         self.profile     = 0
         self.level       = 0
         self.nbpp        = 0
+        self.longhdr     = 0
+        self.rawbyline   = 0
+        self.excluded    = 0
         self.sampling    = ""
         self.quant       = ""
+        self.colortrafo  = ""
+        self.fractional  = 8
+        self.nlt         = "None"
+        self.extent      = "Unspecified"
         self.boxlist     = BoxList()
 
     def print_indent(self, buffer, nl = 1):
@@ -197,8 +218,8 @@ class JXSCodestream:
         if self.profile == 0x1500: #light 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Light422.10 only supports 8 and 10 bit sample precision")
-            if self.sampling != "400" and self.sampling != "422" and self.sampling != "420":
-                raise JP2Error("Light422.20 only suppors 400, 420 and 422 subsampling")
+            if self.sampling != "400" and self.sampling != "422":
+                raise JP2Error("Light422.20 only suppors 400 and 422 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Light422.10 only supports up to 1 vertical decomposition level")
             if self.quant != "deadzone":
@@ -207,12 +228,26 @@ class JXSCodestream:
                 raise JP2Error("Light422.10 does not support columns")
             if sliceheight != 16:
                 raise JP2Error("Light422.10 only supports slices of 16 grid points")
+            if self.colortrafo != "None":
+                raise JP2Error("Light422.10 does not support any color decorrelation transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Light422.10 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Light422.10 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Light422.10 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Light422.10 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Light422.10 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Light422.10 does not support the CDT marker")
             self.nbpp = 20
         elif self.profile == 0x1a00: #light 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Light444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
-                raise JP2Error("Light444.12 only supports 400, 420, 422 and 444 subsampling")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("Light444.12 only supports 400, 422 and 444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Light444.12 only supports up to 1 vertical decomposition level")
             if self.quant != "deadzone":
@@ -221,83 +256,304 @@ class JXSCodestream:
                 raise JP2Error("Light444.12 does not support columns")
             if sliceheight != 16:
                 raise JP2Error("Light444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("Light444.12 only supports the RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Light444.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Light444.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Light444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Light444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Light444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Light422.12 does not support the CDT marker")
             self.nbpp = 36
         elif self.profile == 0x2500: #light subline 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Light subline 422.10 only supports 8 and 10 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422":
-                raise JP2Error("Light subline 422.10 only supports 400, 420 and 444 subsampling")
+            if self.sampling != "400" and self.sampling != "422":
+                raise JP2Error("Light subline 422.10 only supports 400 and 444 subsampling")
             if self.vlevels > 0:
                 raise JP2Error("Light subline 422.10 only supports 0 vertical decomposition levels")
             if self.precwidth > 2048:
                 raise JP2Error("Light subline 422.10 allows precincts to be at most 2048 grid points large")
+            if self.colortrafo != "None":
+                raise JP2Error("Light subline 422.10 does not support any color decorrelation transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Light subline 422.10 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Light subline 422.10 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Light subline 422.10 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Light subline 422.10 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Light subline 422.10 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Light subline 422.10 does not support the CDT marker")
+            self.nbpp = 20
+        elif self.profile == 0x3240: #main 420.12
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("Main420.10 only supports 8 and 10 bit sample precision")
+            if self.sampling != "420":
+                raise JP2Error("Main420.10 only supports 420 subsampling")
+            if self.vlevels > 1:
+                raise JP2Error("Main420.10 only supports up to 1 vertical decomposition level")
+            if self.columnsize != 0 and self.vlevels > 0:
+                raise JP2Error("Main420.10 only supports columns for 0 vertical levels")
+            if sliceheight != 16:
+                raise JP2Error("Main420.10 only supports slices of 16 grid points")
+            if self.colortrafo != "None":
+                raise JP2Error("Main420.10 does not support any color decorrelation transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Main420.10 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Main420.10 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Main420.10 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Main420.10 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Main420.10 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Main420.10 does not support the CDT marker")
             self.nbpp = 20
         elif self.profile == 0x3540: #main 422.10
             if self.precision != 8 and self.precision != 10:
                 raise JP2Error("Main 422.10 only supports 8 and 10 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422":
-                raise JP2Error("Main422.10 only supports 400, 420 and 444 subsampling")
+            if self.sampling != "400" and self.sampling != "422":
+                raise JP2Error("Main422.10 only supports 400 and 444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main422.10 only supports up to 1 vertical decomposition level")
             if self.columnsize != 0 and self.vlevels > 0:
                 raise JP2Error("Main422.10 only supports columns for 0 vertical levels")
             if sliceheight != 16:
                 raise JP2Error("Main422.10 only supports slices of 16 grid points")
+            if self.colortrafo != "None":
+                raise JP2Error("Main422.10 does not support any color decorrelation transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Main422.10 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Main422.10 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Main422.10 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Main422.10 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Main422.10 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Main422.10 does not support the CDT marker")
             self.nbpp = 20
         elif self.profile == 0x3a40: #main 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
-                raise JP2Error("Main444.12 only supports 400, 420, 422 and 444 subsampling")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("Main444.12 only supports 400, 422 and 444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main444.12 only supports up to 1 vertical decomposition level")
             if self.columnsize != 0 and self.vlevels > 0:
                 raise JP2Error("Main444.10 only supports columns for 0 vertical levels")
             if sliceheight != 16:
-                raise JP2Error("Main444.10 only supports slices of 16 grid points")
+                raise JP2Error("Main444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("Main444.12 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Main444.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Main444.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Main444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Main444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Main444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Main444.12 does not support the CDT marker")
             self.nbpp = 36
         elif self.profile == 0x3e40: #main 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("Main4444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
-                raise JP2Error("Main4444.12 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+                raise JP2Error("Main4444.12 only supports 400, 422, 444, 4224 and 4444 subsampling")
             if self.vlevels > 1:
                 raise JP2Error("Main4444.12 only supports up to 1 vertical decomposition level")
             if self.columnsize != 0 and self.vlevels > 0:
                 raise JP2Error("Main4444.12 only supports columns for 0 vertical levels")
             if sliceheight != 16:
                 raise JP2Error("Main4444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("Main4444.12 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("Main4444.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("Main4444.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("Main4444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("Main4444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("Main4444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("Main4444.12 does not support the CDT marker")
             self.nbpp = 48
         elif self.profile == 0x4a40: #high 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444":
-                raise JP2Error("High444.12 only supports 400, 420, 422 and 444 subsampling")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("High444.12 only supports 400, 422 and 444 subsampling")
             if self.vlevels > 2:
                 raise JP2Error("High444.12 only supports up to 2 vertical decomposition levels")
             if self.columnsize != 0 and self.vlevels > 0:
                 raise JP2Error("High444.12 only supports columns for 0 vertical levels")
             if sliceheight != 16:
                 raise JP2Error("High444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("High444.12 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("High444.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("High444.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("High444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("High444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("High444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("High444.12 does not support the CDT marker")
             self.nbpp = 36
         elif self.profile == 0x4e40: #high 4444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High4444.12 only supports 8,10 and 12 bit sample precision")
-            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
-                raise JP2Error("High4444.12 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+                raise JP2Error("High4444.12 only supports 400, 422, 444, 4224 and 4444 subsampling")
             if self.vlevels > 2:
                 raise JP2Error("High4444.12 only supports up to 2 vertical decomposition levels")
             if self.columnsize != 0 and self.vlevels > 0:
                 raise JP2Error("High4444.12 only supports columns for 0 vertical levels")
             if sliceheight != 16:
                 raise JP2Error("High4444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("High4444.12 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("High4444.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("High4444.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("High4444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("High4444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("High4444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("High4444.12 does not support the CDT marker")
             self.nbpp = 48
+        elif self.profile == 0x6ec0: #MLS 12
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("MLS.12 only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+                raise JP2Error("MLS.12 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("MLS.12 only supports up to 2 vertical decomposition levels")
+            if self.columnsize != 0 and self.vlevels > 0:
+                raise JP2Error("MLS.12 only supports columns for 0 vertical levels")
+            if sliceheight != 16:
+                raise JP2Error("MLS.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("MLS.12 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("MLS.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("MLS.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("MLS.12 does not support excluding components from the transformation")
+            if self.fractional != 0:
+                raise JP2Error("MLS.12 requires 0 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("MLS.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("MLS.12 does not support the CDT marker")
+            self.nbpp = 64 # there is not really a limit
+        elif self.profile == 0x9300: #LightBayer
+            if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
+                raise JP2Error("LightBayer only supports 10,12,14 and 16 bit sample precision")
+            if self.sampling != "4444":
+                raise JP2Error("LightBayer only supports 4444 subsampling")
+            if self.vlevels > 0:
+                raise JP2Error("LightBayer does not support vertical decomposition")
+            if self.columnsize != 0:
+                raise JP2Error("LightBayer does not support colums")
+            if sliceheight != 16:
+                raise JP2Error("LightBayer only supports slices of 16 grid points")
+            if self.colortrafo != "Star-Tetrix":
+                raise JP2Error("LightBayer only supports the Star-Tetrix color transformation")
+            if self.excluded != 1:
+                raise JP2Error("LightBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("LightBayer requires the raw-mode per packet switch")
+            if self.fractional != 6 and self.nlt != "None":
+                raise JP2Error("LightBayer requires 6 fractional bits if a non-linear transform is present")
+            if self.fractional != 8 and self.nlt == "None":
+                raise JP2Error("LightBayer requires 8 fractional bits without a non-linear transform")
+            if self.extent != "in-line":
+                raise JP2Error("LightBayer only supports the in-line Star-Tetrix transformation")
+            self.nbpp = 64
+        elif self.profile == 0xb340: #MainBayer
+            if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
+                raise JP2Error("MainBayer only supports 10,12,14 and 16 bit sample precision")
+            if self.sampling != "4444":
+                raise JP2Error("MainBayer only supports 4444 subsampling")
+            if self.vlevels > 1:
+                raise JP2Error("MainBayer only supports 0 or 1 vertical decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("MainBayer does not support colums")
+            if sliceheight != 16:
+                raise JP2Error("MainBayer only supports slices of 16 grid points")
+            if self.colortrafo != "Star-Tetrix":
+                raise JP2Error("MainBayer only supports the Star-Tetrix color transformation")
+            if self.excluded != 1:
+                raise JP2Error("MainBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("MainBayer requires the raw-mode per packet switch")
+            if self.fractional != 6 and self.nlt != "None":
+                raise JP2Error("MainBayer requires 6 fractional bits if a non-linear transform is present")
+            if self.fractional != 8 and self.nlt == "None":
+                raise JP2Error("MainBayer requires 8 fractional bits without a non-linear transform")
+            self.nbpp = 64
+        elif self.profile == 0xc340: #HighBayer
+            if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
+                raise JP2Error("HighBayer only supports 10,12,14 and 16 bit sample precision")
+            if self.sampling != "4444":
+                raise JP2Error("HighBayer only supports 4444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("HighBayer does not support more than 2 vertical decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("HighBayer does not support colums")
+            if sliceheight != 16:
+                raise JP2Error("HighBayer only supports slices of 16 grid points")
+            if self.colortrafo != "Star-Tetrix":
+                raise JP2Error("HighBayer only supports the Star-Tetrix color transformation")
+            if self.excluded != 1:
+                raise JP2Error("HighBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("HighBayer requires the raw-mode per packet switch")
+            if self.fractional != 6 and self.nlt != "None":
+                raise JP2Error("HighBayer requires 6 fractional bits if a non-linear transform is present")
+            if self.fractional != 8 and self.nlt == "None":
+                raise JP2Error("HighBayer requires 8 fractional bits without a non-linear transform")
+            self.nbpp = 64
         elif self.profile != 0x0000:
-            raise JP2Error("invalid profile indicator")
+            raise JP2Error("invalid profile indicator %s" % self.profile)
             
     def check_level(self):
         level = self.level >> 8 # the rest is the sublevel
-        if level == 0x10: #2k-1 level
+        if level == 0x04: #1k-1 level
+            if self.width > 1280 or self.height > 5120 or self.width * self.height > 1024 * 2048:
+                raise JP2Error("image is too large for 2k-1 level")
+        elif level == 0x10: #2k-1 level
             if self.width > 2048 or self.height > 8192 or self.width * self.height > 2048 * 2048:
                 raise JP2Error("image is too large for 2K-1 level")
         elif level == 0x20: #4k-1
@@ -327,13 +583,15 @@ class JXSCodestream:
     def check_sublevel(self,bytecount):
         sublevel = self.level & 0xff
         bpp      = 8.0 * bytecount / (self.width * self.height)
+        if self.colortrafo == "Star-Tetrix":
+            bpp = bpp / 4.0
         if sublevel == 0x80: # full
             if bpp > self.nbpp:
                 raise JP2Error("bitrate exceeds maximum permissible bitrate of %d for full sublevel" % self.nbpp)
         elif sublevel == 0x10: # 12bpp
             if bpp > 12.0:
                 raise JP2Error("bitrate exceeds 12bpp for 12bpp sublevel")
-        elif sublevel == 0x0a: # 9bpp
+        elif sublevel == 0x0c: # 9bpp
             if bpp > 9.0:
                 raise JP2Error("bitrate exceeds 9bpp for 9bpp sublevel")
         elif sublevel == 0x08: #6bpp
@@ -342,6 +600,9 @@ class JXSCodestream:
         elif sublevel == 0x04: #3bpp
             if bpp > 3.0:
                 raise JP2Error("bitrate exceeds 3bpp for 3bpp sublevel")
+        elif sublevel == 0x03: #2bpp
+            if bpp > 2.0:
+                raise JP2Error("bitrate exceeds 2bpp for 2bpp sublevel")
         elif sublevel != 0x00:
                 raise JP2Error("invalid sublevel specification")
         
@@ -373,7 +634,8 @@ class JXSCodestream:
         nly  = wavl & 15
         cod  = ord(self.buffer[self.pos +23:self.pos + 24])
         lhdr = (cod >> 7) & 1
-        qpih = (cod >> 4) & 7
+        lraw = (cod >> 6) & 1
+        qpih = (cod >> 4) & 3
         fs   = (cod >> 2) & 2
         rm   = cod & 3
         self.sliceheight = hsl
@@ -387,7 +649,9 @@ class JXSCodestream:
         self.profile     = ppih
         self.level       = plev
         self.longhdr     = lhdr
-        self.bandcount   = nc * (2*min(nlx,nly) + max(nlx,nly) + 1)
+        self.rawbyline   = lraw
+        self.fractional  = fq
+        self.colortrafo  = self.decode_cpih(cpih)
         if cw == 0:
             pwidthstr = "full width"
         else:
@@ -415,10 +679,11 @@ class JXSCodestream:
         self.print_indent("Raw bits per code group   : %s bits" % br)
         self.print_indent("Slice coding mode         : %s" % slicemode)
         self.print_indent("Progression mode          : %s" % progression)
-        self.print_indent("Colour decorrelation      : %s" % self.decode_cpih(cpih))
+        self.print_indent("Colour decorrelation      : %s" % self.colortrafo)
         self.print_indent("Horizontal wavelet levels : %s" % nlx)
         self.print_indent("Vertical wavelet levels   : %s" % nly)
         self.print_indent("Forced long headers       : %s" % lhdr)
+        self.print_indent("Raw mode switch per line  : %s" % lraw)
         self.print_indent("Quantizer type            : %s" % self.decode_qpih(qpih))
         self.print_indent("Sign handling             : %s" % self.decode_fs(fs))
         self.print_indent("Run mode                  : %s" % self.decode_rm(rm))
@@ -438,9 +703,7 @@ class JXSCodestream:
         if cpih == 0:
             return "None"
         elif cpih == 1:
-            return "RTC"
-        elif cpih == 2:
-            return "RGGB"
+            return "RCT"
         elif cpih == 3:
             return "Star-Tetrix"
         else:
@@ -517,8 +780,6 @@ class JXSCodestream:
         if c != self.depth:
             raise JP2Error("Number of components in CDT marker is different from NC in picture header")
         self.print_indent("Sampling format                    : %s" % self.sampling)
-        self.check_profile()
-        self.check_level()
         self.end_marker()
             
     def parse_COM(self):
@@ -561,19 +822,24 @@ class JXSCodestream:
             self.print_indent("Band %3s gain,priority : %2s %2s" % (b,gb,pb))
             self.pos = self.pos + 2
             b = b + 1
+        self.bandcount = b
         self.end_marker()
 
     def parse_NLT(self):
         self.new_marker("NLT","Nonlinearity Marker")
         tnlt = ord(self.buffer[4:5])
         if tnlt == 1:
+            self.nlt = "quadratic"
             self.print_indent("NLT Type       : quadratic")
-            if len(self.buffer) != 2 + 2 + 1:
-                raise InvalidSizedMarker("Size of the NLT marker shall be 3 bytes")
+            if len(self.buffer) != 2 + 2 + 1 + 2:
+                raise InvalidSizedMarker("Size of the NLT marker shall be 5 bytes")
+            t1 = ordw(self.buffer[5:7])
+            self.print_indent("DC Offset      : %s" % t1)
         elif tnlt == 2:
+            self.nlt = "extended"
             self.print_indent("NLT Type       : extended")
-#            if len(self.buffer) != 2 + 12:
-#                raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
+            if len(self.buffer) != 2 + 12:
+                raise InvalidSizedMarker("Size of NLT marker shall be 12 bytes")
             t1 = ordl(self.buffer[5:9])
             t2 = ordl(self.buffer[9:13])
             e  = ord(self.buffer[13:14])
@@ -587,9 +853,8 @@ class JXSCodestream:
         if len(self.buffer) != 2 + 2 + 1:
             raise InvalidSizedMarker("Size of the CWD marker shall be 3 bytes")
         sd = ord(self.buffer[4:5])
+        self.excluded = sd
         self.print_indent("Components excluded from DWT : %s" % sd)
-        bands = 2*min(self.hlevels,self.vlevels) + max(self.hlevels,self.vlevels) + 1
-        self.bandcount = (self.depth - sd) * bands + sd
         self.end_marker()
 
     def parse_CTS(self):
@@ -600,12 +865,11 @@ class JXSCodestream:
         ex = ord(self.buffer[5:6])
         if cf == 0:
             xfo = "full"
-        elif cf == 1:
-            xfo = "vertical causal"
         elif cf == 3:
             xfo = "in-line"
         else:
             xfo = "invalid (%d)" % cf
+        self.extent = xfo
         self.print_indent("Transformation type : %s" % xfo)
         self.print_indent("Red exponent        : %s" % (ex >> 4))
         self.print_indent("Blue exponent       : %s" % (ex & 0x0f))
@@ -628,6 +892,8 @@ class JXSCodestream:
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the SLC marker shall be 4 bytes")
         self.print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
+        self.check_profile()
+        self.check_level()
         self.end_marker()
 
     def parse_Precinct(self,file,px,py):
