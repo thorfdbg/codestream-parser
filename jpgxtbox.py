@@ -18,14 +18,14 @@ class BoxSizesInconsistent(JP2Error):
 class BoxSegment:
     def __init__(self,buffer,offset):
         self.offset=offset
-        self.en=ordw(buffer[6:8])
-        self.seq=ordl(buffer[8:12])
-        self.lbox=ordl(buffer[12:16])
+        self.en=int.from_bytes(buffer[6:8], byteorder='big')
+        self.seq=int.from_bytes(buffer[8:12], byteorder='big')
+        self.lbox=int.from_bytes(buffer[12:16], byteorder='big')
         if self.lbox != 1 and self.lbox < 8:
             raise InvalidBoxSize
         self.type=buffer[16:20]
         if self.lbox == 1:
-            self.lbox=ordq(buffer[20:28])
+            self.lbox=int.from_bytes(buffer[20:28], byteorder='big')
             self.buffer=buffer[28:]
             self.body=self.lbox-4-4-8
         else:
