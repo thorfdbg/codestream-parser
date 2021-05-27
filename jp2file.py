@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
-# $Id: jp2file.py,v 1.77 2020/12/07 10:10:15 thor Exp $
+# $Id: jp2file.py,v 1.78 2021/05/27 16:05:57 thor Exp $
 
 import getopt
 import sys
 
+import jxrfile
+import jpgcodestream
+import jxscodestream
+import jp2codestream
 from jp2box import *
-from jp2codestream import *
 from jp2utils import *
 from icc import *
-from jxrfile import *
-from jpgcodestream import *
-from jxscodestream import *
 
 def parse_resolution_box(box,buffer):
     if len(buffer) != 10:
@@ -2063,16 +2063,16 @@ def superbox_hook(box,id,length):
                 type = box.infile.read(2)
                 box.infile.seek(box.offset)
             if ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
-                jxr = JXRCodestream(box.infile,1)
+                jxr = jxrfile.JXRCodestream(box.infile,1)
                 jxr.parse()
             elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
-                cs = JPGCodestream(indent = box.indent + 1, hook = superbox_hook)
+                cs = jpgcodestream.JPGCodestream(indent = box.indent + 1, hook = superbox_hook)
                 cs.stream_parse(box.infile,box.offset)
             elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
-                cs = JXSCodestream(indent = box.indent + 1)
+                cs = jxscodestream.JXSCodestream(indent = box.indent + 1)
                 cs.stream_parse(box.infile,box.offset)
             else:
-                cs = JP2Codestream(indent = box.indent + 1)
+                cs = jp2codestream.JP2Codestream(indent = box.indent + 1)
                 cs.stream_parse(box.infile,box.offset)
     elif id == "mdat":
 	print "Media data box (skipping raw box contents of %s bytes)" % length
@@ -2324,14 +2324,23 @@ if __name__ == "__main__":
     file.seek(0)
     try:
         if ord(type[0]) == 0xff and ord(type[1]) == 0x4f:
-            jp2 = JP2Codestream()
+            jp2 = jp2codestream.JP2Codestream()
             jp2.stream_parse(file,0)
         elif ord(type[0]) == 0xff and ord(type[1]) == 0xd8:
-            jpg = JPGCodestream()
+            jpg = jpgcodestream.JPGCodestream()
             jpg.stream_parse(file,0)
         elif ord(type[0]) == 0xff and ord(type[1]) == 0x10:
-            jxs = JXSCodestream()
+            jxs = jxscodestream.JXSCodestream()
             jxs.stream_parse(file,0)
+        elif ord(type[0]) == 0x57 and ord(type[1]) == 0x4d:
+            jxr = jxrfile.JXRCodestream(file,0)
+            jxr.parse()
+        elif ord(type[0]) == 0x49 and ord(type[1]) == 0x49:
+            jxr = jxrfile.JXRFile(file,0)
+            jxr.parse()
+        elif ord(type[0]) == 0x4d and ord(type[1]) == 0x4d:
+            jxr = jxrfile.JXRFile(file,1)
+            jxr.parse()
         else:
             jp2 = JP2Box(None,file)
             jp2.parse(superbox_hook)

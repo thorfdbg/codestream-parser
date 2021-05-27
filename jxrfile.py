@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxrfile.py,v 1.14 2017/01/31 12:29:35 thor Exp $
+# $Id: jxrfile.py,v 1.15 2021/05/27 16:05:57 thor Exp $
 
 import getopt
 import sys
@@ -1348,14 +1348,14 @@ class JXRFile:
             self.parse_ifd_entry()
         if self.coffset != NotImplemented:
             self.infile.seek(self.coffset)
-            jxrc = JXRCodestream(file,self.indent)
+            jxrc = JXRCodestream(self.infile,self.indent)
             print
             self.print_position()
             self.print_indent("Codestream Contents:")
             jxrc.parse()
         if self.aoffset != NotImplemented and self.aoffset != 0:
             self.infile.seek(self.aoffset)
-            jxrc = JXRCodestream(file,self.indent)
+            jxrc = JXRCodestream(self.infile,self.indent)
             print
             self.print_position()
             self.print_indent("Codestream Alpha Plane Contents:")
