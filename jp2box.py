@@ -19,12 +19,12 @@ class InvalidBoxLength(JP2Error):
 class JP2Box:
     def __init__(self, box, infile, offs = 0):
         self.infile = infile
-	if box == None:
-	    self.indent = 0
+        if box == None:
+            self.indent = 0
             self.offset = 0
             self.end    = 0
-	else:
-	    self.indent = box.indent
+        else:
+            self.indent = box.indent
             self.offset = box.offset + offs
             self.end    = box.target
         self.hdrsize    = 0
@@ -33,25 +33,25 @@ class JP2Box:
         self.bodysize   = 0
 
     def print_indent(self, buffer, nl = 1):
-	print_indent(buffer, self.indent, nl)
+        print_indent(buffer, self.indent, nl)
 
     def print_versflags(self,buffer):
         self.print_indent("Version         : %d" % version(buffer))
         self.print_indent("Flags           : 0x%06x" % flags(buffer))
         
     def new_box(self, description):
-	if self.indent == 0:
-	    self.print_indent("%-8s: New Box: %s" % (str(self.offset - self.hdrsize),description),0)
-	else:
-	    self.print_indent("%-8s: Sub Box: %s" % (str(self.offset - self.hdrsize),description),0)
-	self.indent += 1
+        if self.indent == 0:
+            self.print_indent("%-8s: New Box: %s" % (str(self.offset - self.hdrsize),description),0)
+        else:
+            self.print_indent("%-8s: Sub Box: %s" % (str(self.offset - self.hdrsize),description),0)
+        self.indent += 1
 
     def end_box(self):
-	self.indent -= 1
-	print
+        self.indent -= 1
+        print()
 
     def print_hex(self, buffer):
-	print_hex(buffer,self.indent)
+        print_hex(buffer,self.indent)
 
     def boxname(self, id):
         try:
@@ -60,7 +60,7 @@ class JP2Box:
             return id
         except ValueError:
             return "0x%02x%02x%02x%02x" % (ord(id[0]), ord(id[1]), ord(id[2]), ord(id[3]))
-	
+
     def parse_string_header(self,buffer):
         length = ordl(buffer)
         id     = buffer[4:8]
@@ -136,18 +136,18 @@ class JP2Box:
         "Parse a container box and call the hook for each sub-box."
         while 1:
             # Read LBox (box length)
-	    header = self.parse_header()
-	    if len(header) == 0:
-		return
-	    if len(header) == 1:
-		id = header[0]
-		self.new_box("\"%s\"" % (id))
-		hook(self,id,"all up to EOF")
-		self.end_box()
-		continue	
+            header = self.parse_header()
+            if len(header) == 0:
+                return
+            if len(header) == 1:
+                id = header[0].decode('utf-8')
+                self.new_box("\"%s\"" % (id))
+                hook(self,id,"all up to EOF")
+                self.end_box()
+                continue
 
             length = header[0]
-            id     = header[1]
+            id     = header[1].decode('utf-8')
             self.bodysize = length
             self.target   = self.infile.tell() + length
 

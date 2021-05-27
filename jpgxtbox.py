@@ -2,7 +2,7 @@
 # $Id: jpgxtbox.py,v 1.3 2016/06/01 16:18:59 thor Exp $
 
 import sys
-import StringIO
+import io
 
 from jp2utils import *
 from jp2box import *
@@ -18,14 +18,14 @@ class BoxSizesInconsistent(JP2Error):
 class BoxSegment:
     def __init__(self,buffer,offset):
         self.offset=offset
-        self.en=ordw(buffer[6:8])
-        self.seq=ordl(buffer[8:12])
-        self.lbox=ordl(buffer[12:16])
+        self.en=int.from_bytes(buffer[6:8], byteorder='big')
+        self.seq=int.from_bytes(buffer[8:12], byteorder='big')
+        self.lbox=int.from_bytes(buffer[12:16], byteorder='big')
         if self.lbox != 1 and self.lbox < 8:
             raise InvalidBoxSize
         self.type=buffer[16:20]
         if self.lbox == 1:
-            self.lbox=ordq(buffer[20:28])
+            self.lbox=int.from_bytes(buffer[20:28], byteorder='big')
             self.buffer=buffer[28:]
             self.body=self.lbox-4-4-8
         else:
@@ -83,12 +83,12 @@ class BoxList:
             if segment.lbox > 0xffffffff:
                 buffer=chrl(1)+segment.type+chrq(segment.lbox)
             else:
-                buffer=chrl(segment.lbox)+segment.type
+                buffer=segment.lbox.to_bytes(4, byteorder='big') + segment.type
             sortedlist=sorted(self.boxlist[index])
             offset=sortedlist[0].offset
             for seg in sortedlist:
                 buffer=buffer+seg.buffer
-            stringstream=StringIO.StringIO(buffer)
+            stringstream=io.BytesIO(buffer)
             box=JP2Box(None,stringstream)
             box.indent = indent
             return box

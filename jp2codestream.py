@@ -61,12 +61,12 @@ class JP2Codestream:
             self.datacount = self.datacount + count
             self.bytecount = self.bytecount + count
             self.print_indent("Data : %d bytes" % (count))
-            print
+            print()
 
     def new_marker(self, name, description):
         self.print_indent("%-8s: New marker: %s (%s)" % \
                           (str(self.pos-2 + self.offset),name, description))
-        print
+        print()
         self.indent = self.indent + 1
         self.headers = []
 
@@ -84,7 +84,7 @@ class JP2Codestream:
                 for i in range(maxlen - len(header[0])):
                     s = s + " "
                 self.print_indent("%s%s : %s" % (header[0], s, header[1]))
-            print
+            print()
             self.headers = []
             
     def parse(self, buffer, startpos):
@@ -310,17 +310,17 @@ class JP2Codestream:
         self.print_header("Progression Order",
                           self.progression_order(ord(self.buffer[self.pos + 0])))
         self.print_header("Layers",str(ordw(self.buffer[self.pos + 1:self.pos + 3])))
-	trafo = ord(self.buffer[self.pos + 3])
+        trafo = ord(self.buffer[self.pos + 3])
         if trafo == 0:
             s = "none"
         elif trafo == 1:
             s = "components 0,1,2"
-	elif trafo == 2:
-	    s = "generic array based transform"
-	elif trafo == 4:
-	    s = "wavelet based transform"
-	elif trafo == 6:
-	    s = "array and wavelet based transform"
+        elif trafo == 2:
+            s = "generic array based transform"
+        elif trafo == 4:
+            s = "wavelet based transform"
+        elif trafo == 6:
+            s = "array and wavelet based transform"
         else:
             s = str(ord(self.buffer[self.pos + 3]))
         self.print_header("Multiple Component Transformation", s)
@@ -330,11 +330,11 @@ class JP2Codestream:
         if len(self.buffer) - self.pos < 5 + precincts:
             raise InvalidSizedMarker("SPco")
     
-	levels = ord(self.buffer[self.pos + 0])
-	if levels <= 32:
-	        self.print_header("Decomposition Levels", str(levels))
-	else:
-		self.print_header("Downsampling factor style", str(levels))
+        levels = ord(self.buffer[self.pos + 0])
+        if levels <= 32:
+                self.print_header("Decomposition Levels", str(levels))
+        else:
+                self.print_header("Downsampling factor style", str(levels))
         self.print_header("Code-block size", "%dx%d" % \
                           (1 << (ord(self.buffer[self.pos + 1]) + 2),
                            1 << (ord(self.buffer[self.pos + 2]) + 2)))
@@ -450,32 +450,32 @@ class JP2Codestream:
         elif rsiz & (1 << 14):
             s = "JPEG2000 part 15"
         elif rsiz & (1 << 15):
-	    s = "JPEG2000 part 2"
-	    if rsiz & (1 << 11):
-		s += " Precinct dependent QNT"
-	    if rsiz & (1 << 10):
-		s += " Arbitrary ROIs"
-	    if rsiz & (1 << 9):
-		s += " NLT transform"
-	    if rsiz & (1 << 8):
-		s += " Multi-component transform"
-	    if rsiz & (1 << 7):
-		s += " WSS transformation kernel"
-	    if rsiz & (1 << 6):
-		s += " Arbitrary kernel"
-	    if rsiz & (1 << 5):
-		s += " Arbitrary decomposition"
-	    if rsiz & (1 << 4):
-		s += " Single sample overlap"
-	    if rsiz & (1 << 3):
-		s += " Visual masking"
-	    if rsiz & (1 << 2):
-		s += " Trellis quantization"
-	    if rsiz & (1 << 1):
-		s += " Variable scalar quantization"
-	    if rsiz & (1 << 0):
-		s += " Variable DC offset"
-	else:
+            s = "JPEG2000 part 2"
+            if rsiz & (1 << 11):
+                s += " Precinct dependent QNT"
+            if rsiz & (1 << 10):
+                s += " Arbitrary ROIs"
+            if rsiz & (1 << 9):
+                s += " NLT transform"
+            if rsiz & (1 << 8):
+                s += " Multi-component transform"
+            if rsiz & (1 << 7):
+                s += " WSS transformation kernel"
+            if rsiz & (1 << 6):
+                s += " Arbitrary kernel"
+            if rsiz & (1 << 5):
+                s += " Arbitrary decomposition"
+            if rsiz & (1 << 4):
+                s += " Single sample overlap"
+            if rsiz & (1 << 3):
+                s += " Visual masking"
+            if rsiz & (1 << 2):
+                s += " Trellis quantization"
+            if rsiz & (1 << 1):
+                s += " Variable scalar quantization"
+            if rsiz & (1 << 0):
+                s += " Variable DC offset"
+        else:
             s = "unknown"
         self.print_header("Required Capabilities", s)
 
@@ -559,16 +559,16 @@ class JP2Codestream:
         else:
             s = "no"
         self.print_header("EPH Marker Segments", s)
-	if cod & 0x08:
-	    s = "1";
-	else:
-	    s = "0";
-	self.print_header("Codeblock X offset", s);
-	if cod & 0x10:
-	    s = "1";
-	else:
-	    s = "0";
-	self.print_header("Codeblock Y offset", s);
+        if cod & 0x08:
+            s = "1";
+        else:
+            s = "0";
+        self.print_header("Codeblock X offset", s);
+        if cod & 0x10:
+            s = "1";
+        else:
+            s = "0";
+        self.print_header("Codeblock Y offset", s);
         self.print_header("All Flags", "%08x" % (cod))
         self.pos = self.pos + 3
         self.read_SGco()
@@ -625,16 +625,16 @@ class JP2Codestream:
             s = "scalar derived"
         elif sqcd & 0x1f == 2:
             s = "scalar expounded"
-	elif sqcd & 0x1f == 3:
-	    s = "variable deadzone scalar derived"
-	elif sqcd & 0x1f == 4:
-	    s = "variable deadzone scalar expounded"
-	elif sqcd & 0x1f == 5:
-	    s = "variable deadzone scalar expounded"
-	elif sqcd & 0x1f == 9:
-	    s = "trellis quantization derived"
-	elif sqcd & 0x1f == 10:
-	    s = "trellis quantization expounded"
+        elif sqcd & 0x1f == 3:
+            s = "variable deadzone scalar derived"
+        elif sqcd & 0x1f == 4:
+            s = "variable deadzone scalar expounded"
+        elif sqcd & 0x1f == 5:
+            s = "variable deadzone scalar expounded"
+        elif sqcd & 0x1f == 9:
+            s = "trellis quantization derived"
+        elif sqcd & 0x1f == 10:
+            s = "trellis quantization expounded"
         else:
             s = "unknown"
         self.print_header("Quantization Type", s)
@@ -645,17 +645,17 @@ class JP2Codestream:
                 raise InvalidSizedMarker("QCD")
             subbands = subbands / 2
         for i in range(subbands):
-	    mantissa = 1.0
+            mantissa = 1.0
             if sqcd & 0x1f == 1 or sqcd & 0x1f == 2:
                 spqcd = ordw(self.buffer[self.pos + i * 2 + 3:self.pos + i * 2 + 5])
-		mantissa = 1.0 + ((spqcd & 0x7ff) / 2048.0)
+                mantissa = 1.0 + ((spqcd & 0x7ff) / 2048.0)
                 self.print_header("Mantissa #%d" % (i), str(spqcd & 0x7ff))
                 exponent = spqcd >> 11
             else:
                 spqcd = ord(self.buffer[self.pos + i + 3])
                 exponent = spqcd >> 3
             self.print_header("Exponent #%d" % (i), str(exponent))
-	    self.print_header("Delta    #%d" % (i), str(mantissa * pow(2.0,-exponent)))
+            self.print_header("Delta    #%d" % (i), str(mantissa * pow(2.0,-exponent)))
         self.end_marker()
         self.pos = self.pos + self.size
 
@@ -691,19 +691,19 @@ class JP2Codestream:
                 raise InvalidSizedMarker("QCC")
             subbands = subbands / 2
         for i in range(subbands):
-	    mantissa = 1.0
+            mantissa = 1.0
             if sqcc & 0x1f == 1 or sqcc & 0x1f == 2:
                 spqcd = ordw(self.buffer[self.pos + 0:self.pos + 2])
                 self.pos = self.pos + 2
-		mantissa = 1.0 + ((spqcd & 0x7ff) / 2048.0)
-		self.print_header("Mantissa #%d" % (i), str(spqcd & 0x7ff))
+                mantissa = 1.0 + ((spqcd & 0x7ff) / 2048.0)
+                self.print_header("Mantissa #%d" % (i), str(spqcd & 0x7ff))
                 exponent = spqcd >> 11
             else:
                 spqcd = ord(self.buffer[self.pos + 0])
                 self.pos = self.pos + 1
                 exponent = spqcd >> 3
             self.print_header("Exponent #%d" % (i), str(exponent))
-	    self.print_header("Delta    #%d" % (i), mantissa * pow(2.0,-exponent))
+            self.print_header("Delta    #%d" % (i), mantissa * pow(2.0,-exponent))
         self.end_marker()
 
     def read_RGN(self):
@@ -716,13 +716,13 @@ class JP2Codestream:
             cmp = ordw(self.buffer[self.pos + 2:self.pos + 4])
             self.pos = self.pos + 4
         self.print_header("Component", str(cmp))
-	method = ord(self.buffer[self.pos + 0])
+        method = ord(self.buffer[self.pos + 0])
         if method == 0:
             s = "implicit"
-	elif method == 1:
-	    s = "rectangle"
-	elif method == 2:
-	    s = "ellipse"
+        elif method == 1:
+            s = "rectangle"
+        elif method == 2:
+            s = "ellipse"
         else:
             s = str(method)
         self.pos = self.pos + 1
@@ -902,302 +902,302 @@ class JP2Codestream:
         self.end_marker()
 
     def read_CBD(self):
-	self.new_marker("CBD", "Component bit depth definition")
-	if self.size < 5:
-	    raise InvalidSizedMarker("CBD")
+        self.new_marker("CBD", "Component bit depth definition")
+        if self.size < 5:
+            raise InvalidSizedMarker("CBD")
         nbcd = ordw(self.buffer[self.pos + 2:self.pos + 4])
-	if nbcd & (1 << 15):
-		nbcd -= 1 << 15
-		self.print_header("Definition style","Identical depth and signs")
-		count = 1
-	else:
-		self.print_header("Definition style","Individual depths and signs")
-		count = nbcd
-	self.print_header("Number of generated components",str(nbcd))
-	self.pos = self.pos + 4
-	for i in range(count):
-		if ord(self.buffer[self.pos]) & (1 << 7):
-			self.print_header("Component %d sign" % i,"signed")
-		else:
-			self.print_header("Component %d sign" % i,"unsigned")
-		self.print_header("Component %d Bit Depth" % i,str(1 + (ord(self.buffer[self.pos]) & 0x7f)))
-		self.pos += 1
-	self.end_marker()
-		
+        if nbcd & (1 << 15):
+                nbcd -= 1 << 15
+                self.print_header("Definition style","Identical depth and signs")
+                count = 1
+        else:
+                self.print_header("Definition style","Individual depths and signs")
+                count = nbcd
+        self.print_header("Number of generated components",str(nbcd))
+        self.pos = self.pos + 4
+        for i in range(count):
+                if ord(self.buffer[self.pos]) & (1 << 7):
+                        self.print_header("Component %d sign" % i,"signed")
+                else:
+                        self.print_header("Component %d sign" % i,"unsigned")
+                self.print_header("Component %d Bit Depth" % i,str(1 + (ord(self.buffer[self.pos]) & 0x7f)))
+                self.pos += 1
+        self.end_marker()
+
     def read_MCO(self):
-	self.new_marker("MCO", "Multiple component transform ordering")
-	if self.size < 3:
-	    raise InvalidSizedMarker("MCO")
-	nmco = ord(self.buffer[self.pos + 2])
-	if self.size != nmco + 3:
-	    raise InvalidSizedMarker("MCO")
-	self.print_header("Number of component collections","%d" % nmco)
-	self.pos += 3
-	for i in range(nmco):
-		self.print_header("MCC collection %d" % i,str(ord(self.buffer[self.pos])))
-		self.pos += 1
-	self.end_marker()
+        self.new_marker("MCO", "Multiple component transform ordering")
+        if self.size < 3:
+            raise InvalidSizedMarker("MCO")
+        nmco = ord(self.buffer[self.pos + 2])
+        if self.size != nmco + 3:
+            raise InvalidSizedMarker("MCO")
+        self.print_header("Number of component collections","%d" % nmco)
+        self.pos += 3
+        for i in range(nmco):
+                self.print_header("MCC collection %d" % i,str(ord(self.buffer[self.pos])))
+                self.pos += 1
+        self.end_marker()
 
     def read_MCC(self):
         self.new_marker("MCC", "Multiple component collection")
-	if self.size < 5:
-	   raise InvalidSizedMarker("MCC")
+        if self.size < 5:
+           raise InvalidSizedMarker("MCC")
         zmcc = 	ordw(self.buffer[self.pos + 2:self.pos + 4])
         self.print_header("Concatenation index",str(zmcc))
-	imcc =  ord(self.buffer[self.pos + 4])
-	self.print_header("Reference index",str(imcc))
-	self.pos += 5
-	if zmcc == 0:
+        imcc =  ord(self.buffer[self.pos + 4])
+        self.print_header("Reference index",str(imcc))
+        self.pos += 5
+        if zmcc == 0:
             ymcc =  ordw(self.buffer[self.pos + 0:self.pos + 2])
             self.print_header("Last concatenation index",str(ymcc))
             qmcc =  ordw(self.buffer[self.pos + 2:self.pos + 4])
             self.print_header("Number of collections",str(qmcc))
             self.pos += 4
-	for i in range(qmcc):
-		ctp = ord(self.buffer[self.pos])
-		if ctp & 3 == 0:
-		    s = "array based dependency transformation"
-		elif ctp & 3 == 1:
-		    s = "array based decorrelation transformation"
-		elif ctp & 3 == 3:
-		    s = "wavelet based transformation"
-		else:
-		    s = "invalid type"
-		self.print_header("Transformation type",s)
-		self.pos += 1
+        for i in range(qmcc):
+                ctp = ord(self.buffer[self.pos])
+                if ctp & 3 == 0:
+                    s = "array based dependency transformation"
+                elif ctp & 3 == 1:
+                    s = "array based decorrelation transformation"
+                elif ctp & 3 == 3:
+                    s = "wavelet based transformation"
+                else:
+                    s = "invalid type"
+                self.print_header("Transformation type",s)
+                self.pos += 1
                 nmcc = 	ordw(self.buffer[self.pos + 0:self.pos + 2])
-		if nmcc & (1 << 15):
-		    self.print_header("Collection %d input index size" % i,"16 bit")
-		    intype = 2
-		    nmcc  -= 1 << 15
-		else:
-		    self.print_header("Collection %d input index size" % i,"8 bit")
-		    intype = 1
-		self.print_header("Collection %d # of input components" % i,nmcc)
-		self.pos += 2
-		for j in range(nmcc):
-			if intype == 2:
+                if nmcc & (1 << 15):
+                    self.print_header("Collection %d input index size" % i,"16 bit")
+                    intype = 2
+                    nmcc  -= 1 << 15
+                else:
+                    self.print_header("Collection %d input index size" % i,"8 bit")
+                    intype = 1
+                self.print_header("Collection %d # of input components" % i,nmcc)
+                self.pos += 2
+                for j in range(nmcc):
+                        if intype == 2:
                             incom = ordw(self.buffer[self.pos + 0:self.pos + 2])
-			    self.pos += 2
-			else:
-			    incom = ord(self.buffer[self.pos])
-			    self.pos += 1
-			self.print_header("Collection %d input component %d" % (i,j),str(incom))
-		mmcc = 	ordw(self.buffer[self.pos + 0:self.pos + 2])
-		if mmcc & (1 << 15):
-		    self.print_header("Collection %d output index size" % i,"16 bit")
-		    outtype = 2
-		    mmcc  -= 1 << 15
-		else:
-		    self.print_header("Collection %d output index size" % i,"8 bit")
-		    outtype = 1
-		self.print_header("Collection %d # of output components" % i,mmcc)
-		self.pos += 2
-		for j in range(mmcc):
-			if outtype == 2:
+                            self.pos += 2
+                        else:
+                            incom = ord(self.buffer[self.pos])
+                            self.pos += 1
+                        self.print_header("Collection %d input component %d" % (i,j),str(incom))
+                mmcc = 	ordw(self.buffer[self.pos + 0:self.pos + 2])
+                if mmcc & (1 << 15):
+                    self.print_header("Collection %d output index size" % i,"16 bit")
+                    outtype = 2
+                    mmcc  -= 1 << 15
+                else:
+                    self.print_header("Collection %d output index size" % i,"8 bit")
+                    outtype = 1
+                self.print_header("Collection %d # of output components" % i,mmcc)
+                self.pos += 2
+                for j in range(mmcc):
+                        if outtype == 2:
                             outcom = ordw(self.buffer[self.pos + 0:self.pos + 2])
-			    self.pos += 2
-			else:
-			    outcom = ord(self.buffer[self.pos])
-			    self.pos += 1
-			self.print_header("Collection %d output component %d" % (i,j),str(outcom))
-		if ctp & 3 == 3:
-			self.print_header("Number of decomposition levels",ord(self.buffer[self.pos]))
-			if ord(self.buffer[self.pos + 1]) == 0:
-				s = "null"
-			else:
-				s = "in MCT marker %d" % ord(self.buffer[self.pos + 1])
-			self.print_header("Collection %d offset vector" % i,s)
-			if ord(self.buffer[self.pos + 2]) == 0:
-				s = "9-7 irreversible"
-			elif ord(self.buffer[self.pos + 2]) == 1:
-				s = "5-3 reversible"
-			else:
-				s = "defined in ATK segment %d " % ord(self.buffer[self.pos + 2])
-			self.print_header("Wavelet filter used",s)
-			self.pos += 3
-			self.print_header("Collection %d reference grid offset" % i,
-				ordl(self.buffer[self.pos + 0:self.pos + 4]))
-			self.pos += 4
-		else:
-			if ord(self.buffer[self.pos]) & 1:
-				s = "reversible"
-			else:
-				s = "irreversible"
-			self.print_header("Collection %d transformation is" % i,s)
-			if ord(self.buffer[self.pos + 1]) == 0:
-				s = "null"
-			else:
-				s = "in MCT marker %d" % ord(self.buffer[self.pos + 1])
-			self.print_header("Collection %d offset vector" % i,s)
-			if ord(self.buffer[self.pos + 2]) == 0:
-				s = "identity"
-			else:
-				s = "in MCT marker %d" % ord(self.buffer[self.pos + 2])
-			self.print_header("Collection %d matrix" % i,s)
-			self.pos += 3
-	self.end_marker()
-	
+                            self.pos += 2
+                        else:
+                            outcom = ord(self.buffer[self.pos])
+                            self.pos += 1
+                        self.print_header("Collection %d output component %d" % (i,j),str(outcom))
+                if ctp & 3 == 3:
+                        self.print_header("Number of decomposition levels",ord(self.buffer[self.pos]))
+                        if ord(self.buffer[self.pos + 1]) == 0:
+                                s = "null"
+                        else:
+                                s = "in MCT marker %d" % ord(self.buffer[self.pos + 1])
+                        self.print_header("Collection %d offset vector" % i,s)
+                        if ord(self.buffer[self.pos + 2]) == 0:
+                                s = "9-7 irreversible"
+                        elif ord(self.buffer[self.pos + 2]) == 1:
+                                s = "5-3 reversible"
+                        else:
+                                s = "defined in ATK segment %d " % ord(self.buffer[self.pos + 2])
+                        self.print_header("Wavelet filter used",s)
+                        self.pos += 3
+                        self.print_header("Collection %d reference grid offset" % i,
+                                ordl(self.buffer[self.pos + 0:self.pos + 4]))
+                        self.pos += 4
+                else:
+                        if ord(self.buffer[self.pos]) & 1:
+                                s = "reversible"
+                        else:
+                                s = "irreversible"
+                        self.print_header("Collection %d transformation is" % i,s)
+                        if ord(self.buffer[self.pos + 1]) == 0:
+                                s = "null"
+                        else:
+                                s = "in MCT marker %d" % ord(self.buffer[self.pos + 1])
+                        self.print_header("Collection %d offset vector" % i,s)
+                        if ord(self.buffer[self.pos + 2]) == 0:
+                                s = "identity"
+                        else:
+                                s = "in MCT marker %d" % ord(self.buffer[self.pos + 2])
+                        self.print_header("Collection %d matrix" % i,s)
+                        self.pos += 3
+        self.end_marker()
+
     def read_MCT(self):
         self.new_marker("MCT", "Multiple component transformation")
-	len = self.size - 6
-	if len < 0:
+        len = self.size - 6
+        if len < 0:
             raise InvalidSizedMarker("MCT")
         zmct =  ordw(self.buffer[self.pos + 2:self.pos + 4])
-	self.print_header("Concatenation index",str(zmct))
-	imct =	ord(self.buffer[self.pos + 5])
-	self.print_header("Reference index",str(imct))
-	type =	ord(self.buffer[self.pos + 4])
-	if type & 3 == 0:
-	    s = "Dependency transform"
-	elif type & 3 == 1:
-	    s = "Decorrelation matrix"
-	elif type & 3 == 2:
-	    s = "Offset vector"
-	else:
-	    s = "Unknown"
-	self.print_header("Transform type",s)
-	if type & 12 == 0:
-	    s = "16 bit integer"
-	    l = 2
-	elif type & 12 == 4:
-	    s = "32 bit integer"
-	    l = 4
-	elif type & 12 == 8:
-	    s = "32 bit IEEE float"
-	    l = 4
-	elif type & 12 == 12:
-	    s = "64 bit IEEE float"
-	    l = 8
-	self.print_header("Data type",s)	
-	self.pos += 6
-	if zmct == 0:
+        self.print_header("Concatenation index",str(zmct))
+        imct =	ord(self.buffer[self.pos + 5])
+        self.print_header("Reference index",str(imct))
+        type =	ord(self.buffer[self.pos + 4])
+        if type & 3 == 0:
+            s = "Dependency transform"
+        elif type & 3 == 1:
+            s = "Decorrelation matrix"
+        elif type & 3 == 2:
+            s = "Offset vector"
+        else:
+            s = "Unknown"
+        self.print_header("Transform type",s)
+        if type & 12 == 0:
+            s = "16 bit integer"
+            l = 2
+        elif type & 12 == 4:
+            s = "32 bit integer"
+            l = 4
+        elif type & 12 == 8:
+            s = "32 bit IEEE float"
+            l = 4
+        elif type & 12 == 12:
+            s = "64 bit IEEE float"
+            l = 8
+        self.print_header("Data type",s)
+        self.pos += 6
+        if zmct == 0:
             ymct = ordw(self.buffer[self.pos + 0:self.pos + 2])
-	    self.print_header("Last concatenation index",str(ymct))
-	    self.pos += 2
-	    len      -= 2
-	if len % l != 0:
-	    raise InvalidSizedMarker("MCT")
-	count = len / l
-	self.print_header("Number of entries",str(count))
-	for i in range(count):
-	    if type & 12 == 0:
+            self.print_header("Last concatenation index",str(ymct))
+            self.pos += 2
+            len      -= 2
+        if len % l != 0:
+            raise InvalidSizedMarker("MCT")
+        count = len / l
+        self.print_header("Number of entries",str(count))
+        for i in range(count):
+            if type & 12 == 0:
                 dt = ordw(self.buffer[self.pos + 0:self.pos + 2])
-		if dt >= (1 << 15):
-			dt -= 1 << 16
-		s  = str(dt)
-		self.pos += 2
-	    elif type & 12 == 4:
+                if dt >= (1 << 15):
+                        dt -= 1 << 16
+                s  = str(dt)
+                self.pos += 2
+            elif type & 12 == 4:
                 dt = ordl(self.buffer[self.pos + 0:self.pos + 4])
-		if dt >= (1 << 31):
-			dt -= 1 << 32
-		s  = str(dt)
+                if dt >= (1 << 31):
+                        dt -= 1 << 32
+                s  = str(dt)
                 self.pos += 4
-	    elif type & 12 == 8:
+            elif type & 12 == 8:
                 dt = ordl(self.buffer[self.pos + 0:self.pos + 4])
-		s  = str(ieee_float_to_float(dt))
-		self.pos += 4
-	    elif type & 12 == 12:
+                s  = str(ieee_float_to_float(dt))
+                self.pos += 4
+            elif type & 12 == 12:
                 dtl = ordq(self.buffer[self.pos + 0:self.pos + 8])
-		s   = str(ieee_double_to_float(dtl))
-		self.pos += 8
-	    self.print_header("Data entry %d" % i,s)
-	self.end_marker()
-	    
+                s   = str(ieee_double_to_float(dtl))
+                self.pos += 8
+            self.print_header("Data entry %d" % i,s)
+        self.end_marker()
+
 
     def read_NLT(self):
-	self.new_marker("NLT", "Nonlinearity transformation")
-	if self.size < 6:
-	    raise InvalidSizedMarker("NLT")
+        self.new_marker("NLT", "Nonlinearity transformation")
+        if self.size < 6:
+            raise InvalidSizedMarker("NLT")
         cnlt =	ordw(self.buffer[self.pos + 2:self.pos + 4])
-	if cnlt == 0xffff:
-	    s = "for all components"
-	else:
-	    s = "for component %d" % cnlt
-	self.print_header("Non-Linearity defined",s)
-	bdnlt = ord(self.buffer[self.pos + 4])
-	if bdnlt & 0x80:
-	    s = "signed"
-	    bdnlt -= 0x80
-	else:
-	    s = "unsigned"
-	self.print_header("Output sign",s)
-	self.print_header("Output bit depth",str(bdnlt + 1))
-	tnlt = ord(self.buffer[self.pos + 5])
-	if tnlt == 0:
-	    s = "none"
-	elif tnlt == 1:
-	    s = "Gamma transformation"
-	elif tnlt == 2:
-	    s = "Table lookup"
+        if cnlt == 0xffff:
+            s = "for all components"
+        else:
+            s = "for component %d" % cnlt
+        self.print_header("Non-Linearity defined",s)
+        bdnlt = ord(self.buffer[self.pos + 4])
+        if bdnlt & 0x80:
+            s = "signed"
+            bdnlt -= 0x80
+        else:
+            s = "unsigned"
+        self.print_header("Output sign",s)
+        self.print_header("Output bit depth",str(bdnlt + 1))
+        tnlt = ord(self.buffer[self.pos + 5])
+        if tnlt == 0:
+            s = "none"
+        elif tnlt == 1:
+            s = "Gamma transformation"
+        elif tnlt == 2:
+            s = "Table lookup"
         elif tnlt == 3:
             s = "Two's completement to sign-magnitude conversion"
-	else:
-	    s = "unknown"
-	self.print_header("Non-Linearity type",s)
-	self.pos += 6
-	if tnlt == 1:
-	    e = (ord(self.buffer[self.pos + 0]) << 16) + \
-		(ord(self.buffer[self.pos + 1]) <<  8) + \
-		(ord(self.buffer[self.pos + 2]) <<  0)
-	    l = (ord(self.buffer[self.pos + 3]) << 16) + \
-		(ord(self.buffer[self.pos + 4]) <<  8) + \
-		(ord(self.buffer[self.pos + 5]) <<  0)
-	    t = (ord(self.buffer[self.pos + 6]) << 16) + \
-		(ord(self.buffer[self.pos + 7]) <<  8) + \
-		(ord(self.buffer[self.pos + 8]) <<  0)
-	    a = (ord(self.buffer[self.pos + 9]) << 16) + \
-		(ord(self.buffer[self.pos +10]) <<  8) + \
-		(ord(self.buffer[self.pos +11]) <<  0)
-	    b = (ord(self.buffer[self.pos +12]) << 16) + \
-		(ord(self.buffer[self.pos +13]) <<  8) + \
-		(ord(self.buffer[self.pos +14]) <<  0)
-	    if e == 0:
-		s = "ill-defined"
-	    else:
-		s = str(1.0 / (e / 65536.0))
-	    self.print_header("Gamma exponent",s)
-	    if l == 0:
-	        s = "ill-defined"
-	    else:
-		s = str(1.0 / (l / 65536.0))
-	    self.print_header("Linear slope",s)
-	    self.print_header("Threshold",str(t / 65536.0))
-	    if a == 0:
-		s = "ill-defined"
-	    else:
-		s = str(1.0 / (a / 65536.0))
-	    self.print_header("Nonlinear slope",s)
-	    self.print_header("Offset",str(b / 65536.0))
-	    self.pos += 15
-	elif tnlt == 2:
+        else:
+            s = "unknown"
+        self.print_header("Non-Linearity type",s)
+        self.pos += 6
+        if tnlt == 1:
+            e = (ord(self.buffer[self.pos + 0]) << 16) + \
+                (ord(self.buffer[self.pos + 1]) <<  8) + \
+                (ord(self.buffer[self.pos + 2]) <<  0)
+            l = (ord(self.buffer[self.pos + 3]) << 16) + \
+                (ord(self.buffer[self.pos + 4]) <<  8) + \
+                (ord(self.buffer[self.pos + 5]) <<  0)
+            t = (ord(self.buffer[self.pos + 6]) << 16) + \
+                (ord(self.buffer[self.pos + 7]) <<  8) + \
+                (ord(self.buffer[self.pos + 8]) <<  0)
+            a = (ord(self.buffer[self.pos + 9]) << 16) + \
+                (ord(self.buffer[self.pos +10]) <<  8) + \
+                (ord(self.buffer[self.pos +11]) <<  0)
+            b = (ord(self.buffer[self.pos +12]) << 16) + \
+                (ord(self.buffer[self.pos +13]) <<  8) + \
+                (ord(self.buffer[self.pos +14]) <<  0)
+            if e == 0:
+                s = "ill-defined"
+            else:
+                s = str(1.0 / (e / 65536.0))
+            self.print_header("Gamma exponent",s)
+            if l == 0:
+                s = "ill-defined"
+            else:
+                s = str(1.0 / (l / 65536.0))
+            self.print_header("Linear slope",s)
+            self.print_header("Threshold",str(t / 65536.0))
+            if a == 0:
+                s = "ill-defined"
+            else:
+                s = str(1.0 / (a / 65536.0))
+            self.print_header("Nonlinear slope",s)
+            self.print_header("Offset",str(b / 65536.0))
+            self.pos += 15
+        elif tnlt == 2:
             npts = ordw(self.buffer[self.pos + 0:self.pos + 2])
             dmin = ordl(self.buffer[self.pos + 2:self.pos + 6])
             dmax = ordl(self.buffer[self.pos + 6:self.pos + 10])
-	    prec = ord(self.buffer[self.pos + 10])
-	    self.print_header("Number of points",npts)
-	    self.print_header("Range minimum",dmin / ((1L << 32) - 1.0))
-	    self.print_header("Range maximum",dmax / ((1L << 32) - 1.0))
-	    self.print_header("Data precision","%d bits" % prec)
-	    self.pos += 11
-	    for i in range(npts):
-		if prec <= 8:
-		    dt = ord(self.buffer[self.pos]) + 0L
-		    s  = str(dt / ((1L << prec) - 1.0))
-		    self.pos += 1
-		elif prec <= 16:
+            prec = ord(self.buffer[self.pos + 10])
+            self.print_header("Number of points",npts)
+            self.print_header("Range minimum",dmin / ((1 << 32) - 1.0))
+            self.print_header("Range maximum",dmax / ((1 << 32) - 1.0))
+            self.print_header("Data precision","%d bits" % prec)
+            self.pos += 11
+            for i in range(npts):
+                if prec <= 8:
+                    dt = ord(self.buffer[self.pos]) + 0
+                    s  = str(dt / ((1 << prec) - 1.0))
+                    self.pos += 1
+                elif prec <= 16:
                     dt = ordw(self.buffer[self.pos + 0:self.pos + 2])
-		    s  = str(dt / ((1L << prec) - 1.0))
-		    self.pos += 2
-		elif prec <= 32:
+                    s  = str(dt / ((1 << prec) - 1.0))
+                    self.pos += 2
+                elif prec <= 32:
                     dt = ordl(self.buffer[self.pos + 0:self.pos + 4])
-		    s  = str(dt / ((1L << prec) - 1.0))
-		    self.pos += 4
-	        else:
-		    s  = "ill-defined"
-		self.print_header("Data entry %d" % i,s)
-	self.end_marker()
-	
+                    s  = str(dt / ((1 << prec) - 1.0))
+                    self.pos += 4
+                else:
+                    s  = "ill-defined"
+                self.print_header("Data entry %d" % i,s)
+        self.end_marker()
+
     def read_COM(self):
         self.new_marker("COM", "Comment")
         if self.size < 4:
@@ -1287,7 +1287,7 @@ class JP2Codestream:
 
         if self.marker >= 0x30 and self.marker <= 0x3f or \
            self.marker == 0x4f or self.marker == 0x93 or \
-	   self.marker == 0x92 or self.marker == 0xd9:
+           self.marker == 0x92 or self.marker == 0xd9:
             self.size = None
         else:
             if len(self.buffer) - self.pos < 2:
@@ -1330,16 +1330,16 @@ class JP2Codestream:
             self.read_CRG()
         elif self.marker == 0x64:
             self.read_COM()
-	elif self.marker == 0x74:
-	    self.read_MCT()
-	elif self.marker == 0x75:
-	    self.read_MCC()
-	elif self.marker == 0x76:
-	    self.read_NLT()
-	elif self.marker == 0x77:
-	    self.read_MCO()
-	elif self.marker == 0x78:
-	    self.read_CBD()
+        elif self.marker == 0x74:
+            self.read_MCT()
+        elif self.marker == 0x75:
+            self.read_MCC()
+        elif self.marker == 0x76:
+            self.read_NLT()
+        elif self.marker == 0x77:
+            self.read_MCO()
+        elif self.marker == 0x78:
+            self.read_CBD()
         else:
             self.read_unknown_marker()
 
@@ -1383,15 +1383,15 @@ class JP2Codestream:
 if __name__ == "__main__":
     # Read Arguments
     if len(sys.argv) != 2:
-        print "Usage: %s FILE" % (sys.argv[0])
+        print("Usage: %s FILE" % (sys.argv[0]))
         sys.exit(1)
 
-    print "###############################################################"
-    print "# JP2 codestream log file generated by jp2codestream.py       #"
-    print "# jp2codestream.py is copyrighted (c) 2001-2016 ISO           #"
-    print "# Read README.licence for licence details                     #"
-    print "###############################################################"
-    print
+    print("###############################################################")
+    print("# JP2 codestream log file generated by jp2codestream.py       #")
+    print("# jp2codestream.py is copyrighted (c) 2001-2016 ISO           #")
+    print("# Read README.licence for licence details                     #")
+    print("###############################################################")
+    print()
 
     # Parse Files
     filename  = sys.argv[1]
@@ -1399,5 +1399,5 @@ if __name__ == "__main__":
     jp2 = JP2Codestream()
     try:
         jp2.stream_parse(file,0)        
-    except JP2Error, e:
-        print '***', str(e)
+    except JP2Error as e:
+        print('***', str(e))
