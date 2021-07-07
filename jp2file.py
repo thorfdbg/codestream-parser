@@ -290,7 +290,7 @@ def parse_uuid_box(box,buffer):
         return
     box.print_indent("UUID      :",0)
     uuid = buffer[0:16]
-    if uuid == "\x2d\x41\x21\xde\xb0\xf1\x47\x43\x83\x5b\x00\xf4\x0b\xae\xc2\xed":
+    if uuid == b"\x2d\x41\x21\xde\xb0\xf1\x47\x43\x83\x5b\x00\xf4\x0b\xae\xc2\xed":
         print "Pegasus J2K branding"
         avbrand = 1
     else:
@@ -317,19 +317,20 @@ def parse_filetype_box(box,buffer):
         box.print_indent("invalid box")
         
     # Print BR (brand)
-    if buffer[0:4] == "jp2 ":
+    msg = buffer[0:4].decode()
+    if msg == "jp2 ":
         brand = "JP2"
-    elif buffer[0:4] == "jpxb":
+    elif msg == "jpxb":
         brand = "JPX baseline"
-    elif buffer[0:4] == "jpx ":
+    elif msg == "jpx ":
         brand = "JPX"
-    elif buffer[0:4] == "mjp2":
+    elif msg == "mjp2":
         brand = "mjp2"
     elif buffer[0:4] == "mjps":
         brand = "mjp2"
-    elif buffer[0:4] == "jpxt":
+    elif msg == "jpxt":
         brand = "JPEG XT"
-    elif buffer[0:4] == "jxs ":
+    elif msg == "jxs ":
         brand = "JPEG XS"
     else:
         brand = "0x%02x%02x%02x%02x" % \
@@ -344,39 +345,40 @@ def parse_filetype_box(box,buffer):
     clsize = (len(buffer) - 8) / 4
     for i in range(clsize):
         offset = i * 4 + 8
-        if buffer[offset:offset+4] == "jp2 ":
+        msg = buffer[0:4].decode()
+        if msg == "jp2 ":
             print "JPEG2000",
-        elif buffer[offset:offset+4] == "J2P0":
+        elif msg == "J2P0":
             print "JPEG2000,Profile 0",
-        elif buffer[offset:offset+4] == "J2P1":
+        elif msg == "J2P1":
             print "JPEG2000,Profile 1",
-        elif buffer[offset:offset+4] == "jpxb":
+        elif msg == "jpxb":
             print "JPEG2000-2,JPX",
-        elif buffer[offset:offset+4] == "jpx ":
+        elif msg == "jpx ":
             print "JPEG2000-2",
-        elif buffer[offset:offset+4] == "mjp2":
+        elif msg == "mjp2":
             print "Motion JPEG2000",
-        elif buffer[offset:offset+4] == "mjps":
+        elif msg == "mjps":
             print "Motion JPEG2000,Simple profile",
-        elif buffer[offset:offset+4] == "jpxt":
+        elif msg == "jpxt":
             print "JPEG XT",
-        elif buffer[offset:offset+4] == "jxs ":
+        elif msg == "jxs ":
             print "JPEG XS",
-        elif buffer[offset:offset+4] == "irfp":
+        elif msg == "irfp":
             print "JPEG XT Intermediate Range Coding",
-        elif buffer[offset:offset+4] == "xrdd":
+        elif msg == "xrdd":
             print "JPEG XT HDR Coding profile A",
-        elif buffer[offset:offset+4] == "xrxd":
+        elif msg == "xrxd":
             print "JPEG XT HDR Coding profile B",
-        elif buffer[offset:offset+4] == "xrad":
+        elif msg == "xrad":
             print "JPEG XT HDR Coding profile C",
-        elif buffer[offset:offset+4] == "xrrf":
+        elif msg == "xrrf":
             print "JPEG XT HDR Coding profile D",
-        elif buffer[offset:offset+4] == "lsfp":
+        elif msg == "lsfp":
             print "JPEG XT Lossless coding",
-        elif buffer[offset:offset+4] == "acfp":
+        elif msg == "acfp":
             print "JPEG XT alpha coding full profile",
-        elif buffer[offset:offset+4] == "acbp":
+        elif msg == "acbp":
             print "JPEG XT alpha coding base profile",
         else:
             print "0x%02x%02x%02x%02x" % \
@@ -942,7 +944,7 @@ def parse_cref_box(box,buffer):
 def parse_signature_box(box,buffer):
     print "JP2 Signature box"
     box.print_indent("Corrupted:",0)
-    if buffer == "\x0d\x0a\x87\x0a":
+    if buffer == b"\x0d\x0a\x87\x0a":
         print "no"
     else:
         print "yes"
