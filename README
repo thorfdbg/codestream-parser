@@ -1,6 +1,7 @@
 This archive contains a set of Python scripts that can be used to parse
 JPEG, JPEG 2000, JPEG XR, JPEG XS and JPEG XT files and output
-their contents.
+their contents. They require a python 2.7 environment (python 3.x
+will *NOT* work on them).
 
 * jp2codestream.py
   Codestream parsing for JPEG 2000 parsing. Call this script with a 
@@ -9,7 +10,8 @@ their contents.
   data that is not directly used for image data.
 
 * jp2file.py
-  JPEG 2000 File Format parsing. Call this script with a JPEG 2000 file
+  File Format parsing, supports any kind of JPEG file format (JPEG 2000,
+  JPEG, JPEG XR, JPEG XS, JPEG XT). Call this script with a JPEG file
   as argument to parse it and its codestream. This is a generic jpx
   container parser that is also aware of JPEG XR with ISO boxes and
   the JPEG XS file format. Additionally supported flags:

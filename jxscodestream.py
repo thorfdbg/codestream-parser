@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.14 2021/04/12 08:13:17 thor Exp $
+# $Id: jxscodestream.py,v 1.15 2022/05/31 06:28:57 thor Exp $
 
 import sys
 
@@ -636,7 +636,7 @@ class JXSCodestream:
         lhdr = (cod >> 7) & 1
         lraw = (cod >> 6) & 1
         qpih = (cod >> 4) & 3
-        fs   = (cod >> 2) & 2
+        fs   = (cod >> 2) & 1
         rm   = cod & 3
         self.sliceheight = hsl
         self.precheight  = 1 << nly
