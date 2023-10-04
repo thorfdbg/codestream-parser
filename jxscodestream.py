@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.15 2022/05/31 06:28:57 thor Exp $
+# $Id: jxscodestream.py,v 1.16 2023/10/04 10:41:20 thor Exp $
 
 import sys
 
@@ -109,6 +109,8 @@ def decode_Level(level):
         sstr = "9bpp"
     elif sub == 0x08:
         sstr = "6bpp"
+    elif sub == 0x06:
+        sstr = "4bpp"
     elif sub == 0x04:
         sstr = "3bpp"
     elif sub == 0x03:
@@ -148,6 +150,7 @@ class JXSCodestream:
         self.longhdr     = 0
         self.rawbyline   = 0
         self.excluded    = 0
+        self.inter       = False
         self.sampling    = ""
         self.quant       = ""
         self.colortrafo  = ""
@@ -188,7 +191,7 @@ class JXSCodestream:
         mrk    = ordw(marker)
         if (mrk >= 0xff10 and mrk <= 0xff11):
             self.buffer = marker
-        elif mrk == 0xff12 or mrk == 0xff13 or mrk == 0xff14 or mrk == 0xff15 or mrk == 0xff16 or mrk == 0xff17 or mrk == 0xff18 or mrk == 0xff19 or mrk == 0xff20 or mrk == 0xff50:
+        elif (mrk >= 0xff12 and mrk <= 0xff1b) or mrk == 0xff20 or mrk == 0xff21 or mrk == 0xff50:
             size   = file.read(2)
             ln     = ordw(size)
             if (ln < 2):
@@ -545,6 +548,150 @@ class JXSCodestream:
             if self.fractional != 8 and self.nlt == "None":
                 raise JP2Error("HighBayer requires 8 fractional bits without a non-linear transform")
             self.nbpp = 64
+        elif self.profile == 0x4a44: # CHigh
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("CHigh only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("CHigh only supports 400, 422 and 444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("CHigh only supports up to 2 vertical decomposition levels")
+            if self.vlevels == 0 and self.hlevels != 3 and self.hlevels != 4:
+                raise JP2Error("CHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 0 and self.sampling == "420":
+                raise JP2Error("CHigh does not support 0 vertical levels for 420 subsampling")
+            if self.vlevels == 1 and self.hlevels != 4 and self.hlevels != 5:
+                raise JP2Error("CHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 2 and self.hlevels != 5:
+                raise JP2Error("CHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("CHigh does not support columns")
+            if sliceheight != 16:
+                raise JP2Error("CHigh only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("CHigh only supports RCT or no color transformation")
+            if self.colortrafo == "RCT" and self.sampling != "444":
+                raise JP2Error("CHigh only supports RCT for 444 sampling")
+            if self.longhdr != 0:
+                raise JP2Error("CHigh does not support the long header mode switch")
+            if self.rawbyline != 1:
+                raise JP2Error("CHigh requires the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("CHigh does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("CHigh requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("CHigh does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("CHigh does not support the CDT marker")
+            self.nbpp = 36
+        elif self.profile == 0x4a4c: # EHigh
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("EHigh only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("EHigh only supports 400, 422 and 444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("EHigh only supports up to 2 vertical decomposition levels")
+            if self.vlevels == 0 and self.hlevels != 3 and self.hlevels != 4:
+                raise JP2Error("EHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 0 and self.sampling == "420":
+                raise JP2Error("EHigh does not support 0 vertical levels for 420 subsampling")
+            if self.vlevels == 1 and self.hlevels != 4 and self.hlevels != 5:
+                raise JP2Error("EHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 2 and self.hlevels != 5:
+                raise JP2Error("EHigh only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("EHigh does not support columns")
+            if sliceheight != 16:
+                raise JP2Error("EHigh only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("EHigh only supports RCT or no color transformation")
+            if self.colortrafo == "RCT" and self.sampling != "444":
+                raise JP2Error("EHigh only supports RCT for 444 sampling")
+            if self.longhdr != 0:
+                raise JP2Error("EHigh does not support the long header mode switch")
+            if self.rawbyline != 1:
+                raise JP2Error("EHigh requires the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("EHigh does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("EHigh requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("EHigh does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("EHigh does not support the CDT marker")
+            self.nbpp = 36
+        elif self.profile == 0x4a45: # TDC 444.12
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("TDC444.12 only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("TDC444.12 only supports 400, 422 and 444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("TDC444.12 only supports up to 2 vertical decomposition levels")
+            if self.vlevels == 0 and self.hlevels != 3 and self.hlevels != 4:
+                raise JP2Error("TDC444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 0 and self.sampling == "420":
+                raise JP2Error("TDC444.12 does not support 0 vertical levels for 420 subsampling")
+            if self.vlevels == 1 and self.hlevels != 4 and self.hlevels != 5:
+                raise JP2Error("TDC444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 2 and self.hlevels != 5:
+                raise JP2Error("TDC444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("TDC444.12 does not support columns")
+            if sliceheight != 16:
+                raise JP2Error("TDC444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("TDC444.12 only supports RCT or no color transformation")
+            if self.colortrafo == "RCT" and self.sampling != "444":
+                raise JP2Error("TDC444.12 only supports RCT for 444 sampling")
+            if self.longhdr != 0:
+                raise JP2Error("TDC444.12 does not support the long header mode switch")
+            if self.rawbyline != 1:
+                raise JP2Error("TDC444.12 requires the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("TDC444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("TDC444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("TDC444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("TDC444.12 does not support the CDT marker")
+            self.nbpp = 36
+        elif self.profile == 0x6a45: # TDC MLS 444.12
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("TDC MLS 444.12 only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "400" and self.sampling != "422" and self.sampling != "444":
+                raise JP2Error("TDC MLS 444.12 only supports 400, 422 and 444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("TDC MLS 444.12 only supports up to 2 vertical decomposition levels")
+            if self.vlevels == 0 and self.hlevels != 3 and self.hlevels != 4:
+                raise JP2Error("TDC MLS 444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 0 and self.sampling == "420":
+                raise JP2Error("TDC MLS 444.12 does not support 0 vertical levels for 420 subsampling")
+            if self.vlevels == 1 and self.hlevels != 4 and self.hlevels != 5:
+                raise JP2Error("TDC MLS 444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.vlevels == 2 and self.hlevels != 5:
+                raise JP2Error("TDC MLS 444.12 only supports (3,0),(4,0),(4,1),(5,1),(5,2) as wavelet decompositions")
+            if self.columnsize != 0:
+                raise JP2Error("TDC MLS 444.12 does not support columns")
+            if sliceheight != 16:
+                raise JP2Error("TDC MLS 444.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("TDC MLS 444.12 only supports RCT or no color transformation")
+            if self.colortrafo == "RCT" and self.sampling != "444":
+                raise JP2Error("TDC MLS 444.12 only supports RCT for 444 sampling")
+            if self.longhdr != 0:
+                raise JP2Error("TDC MLS 444.12 does not support the long header mode switch")
+            if self.rawbyline != 1:
+                raise JP2Error("TDC MLS 444.12 requires the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("TDC MLS 444.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("TDC MLS 444.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("TDC MLS 444.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("TDC MLS 444.12 does not support the CDT marker")
+            self.nbpp = 36
         elif self.profile != 0x0000:
             raise JP2Error("invalid profile indicator %s" % self.profile)
             
@@ -597,6 +744,9 @@ class JXSCodestream:
         elif sublevel == 0x08: #6bpp
             if bpp > 6.0:
                 raise JP2Error("bitrate exceeds 6bpp for 6bpp sublevel")
+        elif sublevel == 0x06: #4bpp
+            if bpp > 4.0:
+                raise JP2Error("bitrate exceeds 4bpp for 4bpp sublevel")
         elif sublevel == 0x04: #3bpp
             if bpp > 3.0:
                 raise JP2Error("bitrate exceeds 3bpp for 3bpp sublevel")
@@ -824,6 +974,19 @@ class JXSCodestream:
             b = b + 1
         self.bandcount = b
         self.end_marker()
+        
+    def parse_WGI(self):
+        self.new_marker("WGI","Refresh Weights Table")
+        self.pos = 4
+        b = 0
+        while self.pos < len(self.buffer):
+            gb = ord(self.buffer[self.pos:self.pos + 1])
+            pb = ord(self.buffer[self.pos + 1:self.pos + 2])
+            self.print_indent("Band %3s gain,priority : %2s %2s" % (b,gb,pb))
+            self.pos = self.pos + 2
+            b = b + 1
+        self.bandcount = b
+        self.end_marker()
 
     def parse_NLT(self):
         self.new_marker("NLT","Nonlinearity Marker")
@@ -886,20 +1049,62 @@ class JXSCodestream:
             self.pos = self.pos + 4
             c = c + 1
         self.end_marker()
+
+    def parse_TPC(self):
+        self.new_marker("TPC","Temporal Prediction Control Marker")
+        if len(self.buffer) < 2 + 3:
+            raise InvalidSizedMarker("Size of the TPC marker is too small")
+        self.pos = 6
+        si = ord(self.buffer[4:5])
+        bo = ord(self.buffer[5:6])
+        qbi = bo >> 4
+        qbr = bo & 15
+        if qbi >= 8:
+            qbi = qbi-16
+        if qbr >= 8:
+            qbr = qbr-16
+        self.print_indent("Size of a TDC selection group  : %d code groups" % si)
+        self.print_indent("Quantization boost for intra   : %d" % qbi)
+        self.print_indent("Quantization boost for refresh : %d" % qbr)
+        band = 0
+        while self.pos < len(self.buffer):
+            yh = ord(self.buffer[self.pos:self.pos+1])
+            sh = ord(self.buffer[self.pos+1:self.pos+2])
+            self.print_indent("Refresh position      for band %d : %d" % (band,yh))
+            self.print_indent("Refresh hash exponent for band %d : %d" % (band,sh))
+            self.pos = self.pos + 2
+            band = band + 1
+        self.end_marker()
         
     def parse_SLC(self):
         self.new_marker("SLC","Slice Header")
         if len(self.buffer) != 2 + 4:
             raise InvalidSizedMarker("Size of the SLC marker shall be 4 bytes")
         self.print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
+        self.inter = False
+        self.check_profile()
+        self.check_level()
+        self.end_marker()
+
+    def parse_SLI(self):
+        self.new_marker("SLI","TDC enabled Slice Header")
+        if len(self.buffer) != 2 + 4:
+            raise InvalidSizedMarker("Size of the SLI marker shall be 4 bytes")
+        self.print_indent("Slice index : %s" % ordw(self.buffer[4:6]))
+        self.inter = True
         self.check_profile()
         self.check_level()
         self.end_marker()
 
     def parse_Precinct(self,file,px,py):
-        self.print_indent("%-8s: Precinct (%s,%s)" % (self.offset,px,py))
-        self.indent = self.indent + 1
-        bytesize     = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
+        if self.inter:
+            bytesize = (24 + 8 + 8 + 8 + 8 + 4 * self.bandcount + 7) >> 3
+            title    = "Precinct (inter)"
+        else:
+            bytesize = (24 + 8 + 8 + 2 * self.bandcount + 7) >> 3
+            title    = "Precinct"
+        self.print_indent("%-8s: %s (%s,%s)" % (self.offset,title,px,py))
+        self.indent  = self.indent + 1
         header       = file.read(bytesize)
         self.offset  = self.offset + bytesize
         psize        = (ord(header[0:1]) << 16) + (ord(header[1:2]) << 8) + (ord(header[2:3]) << 0)
@@ -908,8 +1113,16 @@ class JXSCodestream:
         self.print_indent("Data length   : %s bytes" %  psize)
         self.print_indent("Quantization  : %s" % qp)
         self.print_indent("Refinement    : %s" % rp)
+        self.pos     = 5
+        if self.inter:
+            fbqp     = ord(header[5:6])
+            fbrp     = ord(header[6:7])
+            self.pos = 7
+            self.print_indent("Frame Buffer Quantization  : %s" % fbqp)
+            self.print_indent("Frame Buffer Refinement    : %s" % fbrp)
         for b in range(self.bandcount):
-            mode = (ord(header[(b >> 2) + 5:(b >> 2) + 6]) >> (6 - ((b & 0x03) << 1))) & 0x03
+            offset = (b >> 2) + self.pos
+            mode = (ord(header[offset:offset + 1]) >> (6 - ((b & 0x03) << 1))) & 0x03
             if mode == 0:
                 modestr = "no prediction, no sigflags"
             elif mode == 1:
@@ -919,6 +1132,20 @@ class JXSCodestream:
             elif mode == 3:
                 modestr = "vertical prediction, sigflags"
             self.print_indent("Band %3s mode : %s" % (b,modestr))
+        if self.inter:
+            for b in range(self.bandcount):
+                bi = b + self.bandcount
+                offset = (bi >> 2) + self.pos
+                mode = (ord(header[offset:offset + 1]) >> (6 - ((bi & 0x03) << 1))) & 0x03
+                if mode == 0:
+                    modestr = "intra"
+                elif mode == 2:
+                    modestr = "inter band"
+                elif mode == 3:
+                    modestr = "inter flags"
+                elif mode == 1:
+                    modestr = "refresh band"
+                self.print_indent("Band %3s temporal mode : %s" % (b,modestr))
         file.read(psize)
         print
         self.offset    = self.offset + psize
@@ -954,6 +1181,8 @@ class JXSCodestream:
                 self.parse_CDT()
             elif ordw(self.buffer) == 0xff14:
                 self.parse_WGT()
+            elif ordw(self.buffer) == 0xff1b:
+                self.parse_WGI()
             elif ordw(self.buffer) == 0xff15:
                 self.parse_COM()
             elif ordw(self.buffer) == 0xff16:
@@ -964,8 +1193,13 @@ class JXSCodestream:
                 self.parse_CTS()
             elif ordw(self.buffer) == 0xff19:
                 self.parse_CRG()
+            elif ordw(self.buffer) == 0xff1a:
+                self.parse_TPC()
             elif ordw(self.buffer) == 0xff20:
                 self.parse_SLC()
+                self.parse_Slice(file)
+            elif ordw(self.buffer) == 0xff21:
+                self.parse_SLI()
                 self.parse_Slice(file)
             elif ordw(self.buffer) == 0xff50:
                 self.parse_CAP()
