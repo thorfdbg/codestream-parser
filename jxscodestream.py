@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.16 2023/10/04 10:41:20 thor Exp $
+# $Id: jxscodestream.py,v 1.17 2023/10/19 09:56:36 thor Exp $
 
 import sys
 
@@ -61,8 +61,16 @@ def decode_Profile(profile):
         return "main 4444.12"
     elif profile == 0x4a40:
         return "high 444.12"
+    elif profile == 0x4a44:
+        return "chigh 444.12"
+    elif profile == 0x4a45:
+        return "tdc 444.12"
+    elif profile == 0x4a4c:
+        return "ehigh 444.12"
     elif profile == 0x4e40:
         return "high 4444.12"
+    elif profile == 0x6a45:
+        return "tdc mls 444.12"
     elif profile == 0x6EC0:
         return "mls 12"
     elif profile == 0x9300:

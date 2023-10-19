@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jp2file.py,v 1.78 2021/05/27 16:05:57 thor Exp $
+# $Id: jp2file.py,v 1.79 2023/10/19 09:56:36 thor Exp $
 
 import getopt
 import sys
@@ -1878,8 +1878,8 @@ def parse_jxpl_box(box,buffer):
     box.print_indent("JPEG Profile and Level box")
     profile = ordw(buffer[0:2])
     level   = ordw(buffer[2:4])
-    box.print_indent("Profile           : %s" % decode_Profile(profile))
-    box.print_indent("Level             : %s" % decode_Level(level))
+    box.print_indent("Profile           : %s" % jxscodestream.decode_Profile(profile))
+    box.print_indent("Level             : %s" % jxscodestream.decode_Level(level))
     
 def parse_bmdm_box(box,buffer):
     box.print_indent("JPEG Buffer Model Description box")
