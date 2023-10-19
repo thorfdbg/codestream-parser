@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.17 2023/10/19 09:56:36 thor Exp $
+# $Id: jxscodestream.py,v 1.18 2023/10/19 12:04:11 thor Exp $
 
 import sys
 
@@ -721,10 +721,10 @@ class JXSCodestream:
             if self.width > 4096 or self.height > 32768 or self.width * self.height > 4096 * 8192:
                 raise JP2Error("image is too large for 4K-3 level")
         elif level == 0x30: #8k-1
-            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 4096:
+            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 4320:
                 raise JP2Error("image is too large for 8K-1 level")
         elif level == 0x34:
-            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 8192:
+            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 8120:
                 raise JP2Error("image is too large for 8K-2 level")
         elif level == 0x38:
             if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 8192:
