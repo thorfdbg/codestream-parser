@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.18 2023/10/19 12:04:11 thor Exp $
+# $Id: jxscodestream.py,v 1.19 2023/10/23 11:29:42 thor Exp $
 
 import sys
 
@@ -706,31 +706,31 @@ class JXSCodestream:
     def check_level(self):
         level = self.level >> 8 # the rest is the sublevel
         if level == 0x04: #1k-1 level
-            if self.width > 1280 or self.height > 5120 or self.width * self.height > 1024 * 2048:
+            if self.width > 1280 or self.height > 5120 or self.width * self.height > 2621440:
                 raise JP2Error("image is too large for 2k-1 level")
         elif level == 0x10: #2k-1 level
-            if self.width > 2048 or self.height > 8192 or self.width * self.height > 2048 * 2048:
+            if self.width > 2048 or self.height > 8192 or self.width * self.height > 4194304:
                 raise JP2Error("image is too large for 2K-1 level")
         elif level == 0x20: #4k-1
-            if self.width > 4096 or self.height > 16384 or self.width * self.height > 4096 * 4096:
+            if self.width > 4096 or self.height > 16384 or self.width * self.height > 8912896:
                 raise JP2Error("image is too large for 4K-1 level")
         elif level == 0x24: #4k-2
-            if self.width > 4096 or self.height > 16384 or self.width * self.height > 4096 * 4096:
+            if self.width > 4096 or self.height > 16384 or self.width * self.height > 16777216:
                 raise JP2Error("image is too large for 4K-2 level")
         elif level == 0x28: #4k-3
-            if self.width > 4096 or self.height > 32768 or self.width * self.height > 4096 * 8192:
+            if self.width > 4096 or self.height > 16384 or self.width * self.height > 16777216:
                 raise JP2Error("image is too large for 4K-3 level")
         elif level == 0x30: #8k-1
-            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 4320:
+            if self.width > 8192 or self.height > 32768 or self.width * self.height > 35651584:
                 raise JP2Error("image is too large for 8K-1 level")
         elif level == 0x34:
-            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 8120:
+            if self.width > 8192 or self.height > 32768 or self.width * self.height > 67108864:
                 raise JP2Error("image is too large for 8K-2 level")
         elif level == 0x38:
-            if self.width > 8192 or self.height > 32768 or self.width * self.height > 8192 * 8192:
+            if self.width > 8192 or self.height > 32768 or self.width * self.height > 67108864:
                 raise JP2Error("image is too large for 8K-3 level")
         elif level == 0x40:
-            if self.width > 10240 or self.height > 40960 or self.width * self.height > 10240 * 10240:
+            if self.width > 10240 or self.height > 40960 or self.width * self.height > 104857600:
                 raise JP2Error("image is too large for 10K-1 level")
         elif level != 0x00:
             raise JP2Error("invalid level specification")
