@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.19 2023/10/23 11:29:42 thor Exp $
+# $Id: jxscodestream.py,v 1.20 2024/02/05 08:44:51 thor Exp $
 
 import sys
 
@@ -83,8 +83,9 @@ def decode_Profile(profile):
         return "invalid (0x%x)" % profile
 
 def decode_Level(level):
-    lvl = level >> 8
-    sub = level & 0xff
+    lvl = (level >> 8) & 0xfc
+    sub = level & 0x9f
+    fbl = (level & 0x360) >> 5
     if lvl == 0x00:
         lstr = "unrestricted"
     elif lvl == 0x04:
@@ -125,7 +126,19 @@ def decode_Level(level):
         sstr = "2bpp"
     else:
         sstr = "invalid (0x%x)" % sub
-    return "%s@%s" % (lstr,sstr)
+    if fbl == 0x00:
+        fstr = ""
+    elif fbl == 0x1b:
+        fstr = "full"
+    elif fbl == 0x18:
+        fstr = "fblev12bpp"
+    elif fbl == 0x08:
+        fstr = "fblev4.5bpp"
+    elif fbl == 0x03:
+        fstr = "fblev3bpp"
+    else:
+        fstr = "invalid fbb (0x%x)" % fbl
+    return "%s@%s %s" % (lstr,sstr,fstr)
 #
 # The Codestream Class
 #
@@ -704,7 +717,7 @@ class JXSCodestream:
             raise JP2Error("invalid profile indicator %s" % self.profile)
             
     def check_level(self):
-        level = self.level >> 8 # the rest is the sublevel
+        level = (self.level >> 8) & 0xfc # the rest is the sublevel and frame buffer level
         if level == 0x04: #1k-1 level
             if self.width > 1280 or self.height > 5120 or self.width * self.height > 2621440:
                 raise JP2Error("image is too large for 2k-1 level")
