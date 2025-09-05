@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.20 2024/02/05 08:44:51 thor Exp $
+# $Id: jxscodestream.py,v 1.22 2024/05/14 11:21:46 thor Exp $
 
 import sys
 
@@ -59,6 +59,8 @@ def decode_Profile(profile):
         return "main 444.12"
     elif profile == 0x3e40:
         return "main 4444.12"
+    elif profile == 0x4240:
+        return "high 420.12"
     elif profile == 0x4a40:
         return "high 444.12"
     elif profile == 0x4a44:
@@ -423,6 +425,32 @@ class JXSCodestream:
             if self.extent != "Unspecified":
                 raise JP2Error("Main4444.12 does not support the CDT marker")
             self.nbpp = 48
+        elif self.profile == 0x4240: #high 420.12
+            if self.precision != 8 and self.precision != 10 and self.precision != 12:
+                raise JP2Error("High420.12 only supports 8,10 and 12 bit sample precision")
+            if self.sampling != "420":
+                raise JP2Error("High420.12 only supports 420 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("High420.12 only supports up to 2 vertical decomposition levels")
+            if self.vlevels == 0:
+                raise JP2Error("High420.12 does not support 0 vertical levels")
+            if sliceheight != 16:
+                raise JP2Error("High420.12 only supports slices of 16 grid points")
+            if self.colortrafo != "None":
+                raise JP2Error("High420.12 does not allow any color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("High420.12 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("High420.12 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("High420.12 does not support excluding components from the transformation")
+            if self.fractional != 8:
+                raise JP2Error("High420.12 requires 8 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("High420.12 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("High420.12 does not support the CDT marker")
+            self.nbpp = 18
         elif self.profile == 0x4a40: #high 444.12
             if self.precision != 8 and self.precision != 10 and self.precision != 12:
                 raise JP2Error("High444.12 only supports 8,10 and 12 bit sample precision")
@@ -958,14 +986,18 @@ class JXSCodestream:
         tcom = ordw(self.buffer[4:6])
         data = self.buffer[6:]
         if tcom == 0:
-            self.print_indent("Vendor                   : %s" % data)
+            if ord(data[len(data)-1:]) != 0:
+                raise JP2Error("Vendor information is not zero-terminated");
+            self.print_indent("Vendor                   : %s" % data[0:len(data)-1])
         elif tcom == 1:
-            self.print_indent("Copyright                : %s" % data)
+            if ord(data[len(data)-1:]) != 0:
+                raise JP2Error("Copyright information is not zero-terminated");
+            self.print_indent("Copyright                : %s" % data[0:len(data)-1])
         elif tcom >= 0x8000:
-            self.print_indent("Vendor 0x%4x information :")
+            self.print_indent("Vendor 0x%4x information :" % tcom)
             print_hex(data)
         else:
-            self.print_indent("Invalid 0x%4x data       :")
+            self.print_indent("Invalid 0x%4x data       :" % tcom)
             print_hex(data)
         self.end_marker()
 
