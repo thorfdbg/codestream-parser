@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.22 2024/05/14 11:21:46 thor Exp $
+# $Id: jxscodestream.py,v 1.24 2025/11/21 13:12:32 thor Exp $
 
 import sys
 
@@ -214,7 +214,7 @@ class JXSCodestream:
         mrk    = ordw(marker)
         if (mrk >= 0xff10 and mrk <= 0xff11):
             self.buffer = marker
-        elif (mrk >= 0xff12 and mrk <= 0xff1b) or mrk == 0xff20 or mrk == 0xff21 or mrk == 0xff50:
+        elif (mrk >= 0xff12 and mrk <= 0xff1b) or mrk == 0xff20 or mrk == 0xff21 or mrk == 0xff25 or mrk == 0xff50:
             size   = file.read(2)
             ln     = ordw(size)
             if (ln < 2):
@@ -1138,6 +1138,15 @@ class JXSCodestream:
         self.check_profile()
         self.check_level()
         self.end_marker()
+        
+    def parse_SYN(self):
+        self.new_marker("SYN","Slice Synchronous Metadata")
+        if len(self.buffer) < 2 + 2:
+            raise InvalidSizedMarker("Size of the SYN marker shall be at least 2 bytes")
+        self.print_indent("Metadata Type : 0x%x" % ordw(self.buffer[4:6]))
+        if len(self.buffer) > 2 + 4:
+            print_hex(self.buffer[6:len(self.buffer)])
+        self.end_marker()
 
     def parse_SLI(self):
         self.new_marker("SLI","TDC enabled Slice Header")
@@ -1254,6 +1263,8 @@ class JXSCodestream:
             elif ordw(self.buffer) == 0xff21:
                 self.parse_SLI()
                 self.parse_Slice(file)
+            elif ordw(self.buffer) == 0xff25:
+                self.parse_SYN()
             elif ordw(self.buffer) == 0xff50:
                 self.parse_CAP()
             else:
