@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.24 2025/11/21 13:12:32 thor Exp $
+# $Id: jxscodestream.py,v 1.25 2026/01/19 13:51:04 thor Exp $
 
 import sys
 
@@ -100,6 +100,8 @@ def decode_Level(level):
         lstr = "4k-2"
     elif lvl == 0x28:
         lstr = "4k-3"
+    elif lvl == 0x2c:
+        lstr = "5k-1"
     elif lvl == 0x30:
         lstr = "8k-1"
     elif lvl == 0x34:
@@ -114,10 +116,24 @@ def decode_Level(level):
         sstr = "unrestricted"
     elif sub == 0x80:
         sstr = "full"
+    elif sub == 0x9f:
+        sstr = "48bpp"
+    elif sub == 0x9e:
+        sstr = "36bpp"
+    elif sub == 0x96:
+        sstr = "32bpp"
+    elif sub == 0x90:
+        sstr = "24bpp"
+    elif sub == 0x8c:
+        sstr = "18bpp"
+    elif sub == 0x8b:
+        sstr = "16bpp"
     elif sub == 0x10:
         sstr = "12bpp"
     elif sub == 0x0c:
         sstr = "9bpp"
+    elif sub == 0x0b:
+        sstr = "8bpp"
     elif sub == 0x08:
         sstr = "6bpp"
     elif sub == 0x06:
@@ -134,6 +150,8 @@ def decode_Level(level):
         fstr = "full"
     elif fbl == 0x18:
         fstr = "fblev12bpp"
+    elif fbl == 0x0a:
+        fstr = "fblev8bpp"
     elif fbl == 0x08:
         fstr = "fblev4.5bpp"
     elif fbl == 0x03:
@@ -761,6 +779,9 @@ class JXSCodestream:
         elif level == 0x28: #4k-3
             if self.width > 4096 or self.height > 16384 or self.width * self.height > 16777216:
                 raise JP2Error("image is too large for 4K-3 level")
+        elif level == 0x2c: #5k-1
+            if self.width > 5120 or self.height > 16384 or self.width * self.height > 16777216:
+                raise JP2Error("image is too large for 5K-1 level")
         elif level == 0x30: #8k-1
             if self.width > 8192 or self.height > 32768 or self.width * self.height > 35651584:
                 raise JP2Error("image is too large for 8K-1 level")
@@ -784,12 +805,33 @@ class JXSCodestream:
         if sublevel == 0x80: # full
             if bpp > self.nbpp:
                 raise JP2Error("bitrate exceeds maximum permissible bitrate of %d for full sublevel" % self.nbpp)
-        elif sublevel == 0x10: # 12bpp
+        elif sublevel == 0x9f: #48bpp
+            if bpp > 48.0:
+                raise JP2Error("bitrate exceeds 48bpp for 48bpp sublevel")
+        elif sublevel == 0x9e: #36bpp
+            if bpp > 36.0:
+                raise JP2Error("bitrate exceeds 36bpp for 36bpp sublevel")
+        elif sublevel == 0x96: #32bpp
+            if bpp > 32.0:
+                raise JP2Error("bitrate exceeds 32bpp for 32bpp sublevel")
+        elif sublevel == 0x90: #24bpp
+            if bpp > 24.0:
+                raise JP2Error("bitrate exceeds 24bpp for 24bpp sublevel")
+        elif sublevel == 0x8c: #18bpp
+            if bpp > 18.0:
+                raise JP2Error("bitrate exceeds 18bpp for 18bpp sublevel")
+        elif sublevel == 0x8b: #16bpp
+            if bpp > 16.0:
+                raise JP2Error("bitrate exceeds 16bpp for 16bpp sublevel")
+        elif sublevel == 0x10: #12bpp
             if bpp > 12.0:
                 raise JP2Error("bitrate exceeds 12bpp for 12bpp sublevel")
-        elif sublevel == 0x0c: # 9bpp
+        elif sublevel == 0x0c: #9bpp
             if bpp > 9.0:
                 raise JP2Error("bitrate exceeds 9bpp for 9bpp sublevel")
+        elif sublevel == 0x0b: #8bpp
+            if bpp > 8.0:
+                raise JP2Error("bitrate exceeds 8bpp for 8bpp sublevel")
         elif sublevel == 0x08: #6bpp
             if bpp > 6.0:
                 raise JP2Error("bitrate exceeds 6bpp for 6bpp sublevel")
