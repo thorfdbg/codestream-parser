@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: jxscodestream.py,v 1.25 2026/01/19 13:51:04 thor Exp $
+# $Id: jxscodestream.py,v 1.26 2026/08/21 11:09:42 thor Exp $
 
 import sys
 
@@ -73,14 +73,18 @@ def decode_Profile(profile):
         return "high 4444.12"
     elif profile == 0x6a45:
         return "tdc mls 444.12"
-    elif profile == 0x6EC0:
+    elif profile == 0x6ec0:
         return "mls 12"
+    elif profile == 0x6ed0:
+        return "mls 16"
     elif profile == 0x9300:
         return "light bayer"
     elif profile == 0xb340:
         return "main bayer"
     elif profile == 0xc340:
         return "high bayer"
+    elif profile == 0xb344:
+        return "cmain bayer"
     else:
         return "invalid (0x%x)" % profile
 
@@ -547,6 +551,32 @@ class JXSCodestream:
             if self.extent != "Unspecified":
                 raise JP2Error("MLS.12 does not support the CDT marker")
             self.nbpp = 64 # there is not really a limit
+        elif self.profile == 0x6ed0: #MLS 16
+            if self.precision != 8 and self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
+                raise JP2Error("MLS.16 only supports 8,10,12,14 and 16 bit sample precision")
+            if self.sampling != "400" and self.sampling != "420" and self.sampling != "422" and self.sampling != "444" and self.sampling != "4224" and self.sampling != "4444":
+                raise JP2Error("MLS.16 only supports 400, 420, 422, 444, 4224 and 4444 subsampling")
+            if self.vlevels > 2:
+                raise JP2Error("MLS.16 only supports up to 2 vertical decomposition levels")
+            if self.columnsize != 0 and self.vlevels > 0:
+                raise JP2Error("MLS.16 only supports columns for 0 vertical levels")
+            if sliceheight != 16:
+                raise JP2Error("MLS.16 only supports slices of 16 grid points")
+            if self.colortrafo != "None" and self.colortrafo != "RCT":
+                raise JP2Error("MLS.16 only supports RCT or no color transformation")
+            if self.longhdr != 0:
+                raise JP2Error("MLS.16 does not support the long header mode switch")
+            if self.rawbyline != 0:
+                raise JP2Error("MLS.16 does not support the raw mode by line switch")
+            if self.excluded != 0:
+                raise JP2Error("MLS.16 does not support excluding components from the transformation")
+            if self.fractional != 0:
+                raise JP2Error("MLS.16 requires 0 fractional bits")
+            if self.nlt != "None":
+                raise JP2Error("MLS.16 does not support non-linear transforms")
+            if self.extent != "Unspecified":
+                raise JP2Error("MLS.16 does not support the CDT marker")
+            self.nbpp = 64 # there is not really a limit
         elif self.profile == 0x9300: #LightBayer
             if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
                 raise JP2Error("LightBayer only supports 10,12,14 and 16 bit sample precision")
@@ -592,6 +622,32 @@ class JXSCodestream:
                 raise JP2Error("MainBayer requires 6 fractional bits if a non-linear transform is present")
             if self.fractional != 8 and self.nlt == "None":
                 raise JP2Error("MainBayer requires 8 fractional bits without a non-linear transform")
+            self.nbpp = 64
+        elif self.profile == 0xb344: #CMainBayer
+            if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
+                raise JP2Error("CMainBayer only supports 10,12,14 and 16 bit sample precision")
+            if self.sampling != "4444":
+                raise JP2Error("CMainBayer only supports 4444 subsampling")
+            if self.vlevels != 1:
+                raise JP2Error("CMainBayer only supports 1 vertical decompositions")
+            if self.hlevels != 5:
+                raise JP2Error("CMainBayer only supports 5 horizontal decompositions")                
+            if self.columnsize != 0:
+                raise JP2Error("CMainBayer does not support colums")
+            if sliceheight != 16:
+                raise JP2Error("CMainBayer only supports slices of 16 grid points")
+            if self.colortrafo != "Star-Tetrix":
+                raise JP2Error("CMainBayer only supports the Star-Tetrix color transformation")
+            if self.extent != "full":
+                raise JP2Error("CMainBayer only supports the full Star-Tetrix color transformation")
+            if self.excluded != 1:
+                raise JP2Error("CMainBayer requires one component to be excluded from the transformation")
+            if self.rawbyline != 1:
+                raise JP2Error("CMainBayer requires the raw-mode per packet switch")
+            if self.fractional != 6 and self.nlt != "None":
+                raise JP2Error("CMainBayer requires 6 fractional bits if a non-linear transform is present")
+            if self.fractional != 8 and self.nlt == "None":
+                raise JP2Error("CMainBayer requires 8 fractional bits without a non-linear transform")
             self.nbpp = 64
         elif self.profile == 0xc340: #HighBayer
             if self.precision != 10 and self.precision != 12 and self.precision != 14 and self.precision != 16:
